@@ -1,13 +1,13 @@
 import FrEIA.framework as Ff
 import FrEIA.modules as Fm
 from omegaconf import DictConfig
-from domain_adaptation.models.domain_adaptation_inn_base import DomainAdaptationInn
+from src.models.domain_adaptation_inn_base import DomainAdaptationInn
 from abc import ABC, abstractmethod
 from typing import overload
 import torch
 import torch.nn.functional as F
-from domain_adaptation.models.discriminator import MultiScaleDiscriminator
-from domain_adaptation.models.inn_subnets import *
+from src.models.discriminator import MultiScaleDiscriminator
+from src.models.inn_subnets import *
 
 
 class GANDomainAdaptationInn(DomainAdaptationInn, ABC):

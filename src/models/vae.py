@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-from domain_adaptation.models.encoder_decoder import Encoder, Decoder
+from src.models.encoder_decoder import Encoder, Decoder
 
 
 class VariationalAutoEncoder(nn.Module):

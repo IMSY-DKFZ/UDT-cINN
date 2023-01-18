@@ -1,12 +1,12 @@
 import FrEIA.framework as Ff
 import FrEIA.modules as Fm
 from omegaconf import DictConfig,ListConfig
-from domain_adaptation.trainers import DAInnBase
+from src.trainers import DAInnBase
 import torch
-from domain_adaptation.models.discriminator import MultiScaleDiscriminator
-from domain_adaptation.models.inn_subnets import subnet_conv, subnet_res_net, subnet_conv_adaptive, subnet_res_net_adaptive
-from domain_adaptation.utils.dimensionality_calculations import calculate_downscale_dimensionality
-from domain_adaptation.models.multiscale_invertible_blocks import append_multi_scale_inn_blocks, append_all_in_one_block
+from src.models.discriminator import MultiScaleDiscriminator
+from src.models.inn_subnets import subnet_conv, subnet_res_net, subnet_conv_adaptive, subnet_res_net_adaptive
+from src.utils.dimensionality_calculations import calculate_downscale_dimensionality
+from src.models.multiscale_invertible_blocks import append_multi_scale_inn_blocks, append_all_in_one_block
 
 
 class GanCondinitionalDomainAdaptationINN(DAInnBase):

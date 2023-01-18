@@ -1,13 +1,13 @@
 import FrEIA.framework as Ff
 import FrEIA.modules as Fm
 from omegaconf import DictConfig
-from domain_adaptation.trainers import DomainAdaptationTrainerBase
+from src.trainers import DomainAdaptationTrainerBase
 import torch
-from domain_adaptation.models.discriminator import MultiScaleDiscriminator
-from domain_adaptation.models.vae import VariationalAutoEncoder
-from domain_adaptation.models.multiscale_invertible_blocks import append_multi_scale_inn_blocks
-from domain_adaptation.models.inn_subnets import subnet_conv, weight_init
-from domain_adaptation.utils.dimensionality_calculations import calculate_downscale_dimensionality
+from src.models.discriminator import MultiScaleDiscriminator
+from src.models.vae import VariationalAutoEncoder
+from src.models.multiscale_invertible_blocks import append_multi_scale_inn_blocks
+from src.models.inn_subnets import subnet_conv, weight_init
+from src.utils.dimensionality_calculations import calculate_downscale_dimensionality
 import matplotlib.pyplot as plt
 import os
 

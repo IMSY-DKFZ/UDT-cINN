@@ -1,5 +1,5 @@
 import torch.nn as nn
-from domain_adaptation.models.basic_blocks import ResBlocks
+from src.models.basic_blocks import ResBlocks
 
 
 def weight_init(m, gain=1., method="kaiming"):

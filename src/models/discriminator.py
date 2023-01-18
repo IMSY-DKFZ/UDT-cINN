@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from domain_adaptation.models.basic_blocks import ConvBlock2D
+from src.models.basic_blocks import ConvBlock2D
 
 
 class MultiScaleDiscriminator(nn.Module):

@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import os
 from datetime import datetime
 
-from domain_adaptation.trainers import CondinitionalDomainAdaptationINN, GANDomainAdaptationInn, UNIT, GanCondinitionalDomainAdaptationINN
-from domain_adaptation.data import DomainAdaptationDataModule
-from domain_adaptation.utils.config_io import load_config
+from src.trainers import CondinitionalDomainAdaptationINN, GANDomainAdaptationInn, UNIT, GanCondinitionalDomainAdaptationINN
+from src.data import DomainAdaptationDataModule
+from src.utils.config_io import load_config
 
 
 try:

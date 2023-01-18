@@ -1,5 +1,5 @@
 import torch.nn as nn
-from domain_adaptation.models.basic_blocks import ConvBlock2D, ResBlocks
+from src.models.basic_blocks import ConvBlock2D, ResBlocks
 
 
 class Encoder(nn.Module):

@@ -7,7 +7,7 @@ import FrEIA.modules as Fm
 from omegaconf import DictConfig
 import pytorch_lightning as pl
 import numpy as np
-from domain_adaptation.models.inn_subnets import subnet_conv, subnet_conv_1x1
+from src.models.inn_subnets import subnet_conv, subnet_conv_1x1
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 import os

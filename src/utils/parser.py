@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 from omegaconf.omegaconf import DictConfig, ListConfig
-from domain_adaptation.utils.config_io import load_config
+from src.utils.config_io import load_config
 import os
 
 
@@ -77,7 +77,7 @@ class DomainAdaptationParser(ArgumentParser):
 
 
 if __name__ == "__main__":
-    conf = load_config("/home/kris/Work/Repositories/dreherk/DomainAdaptation/domain_adaptation/configs/gan_cinn_conf.yaml")
+    conf = load_config("/home/kris/Work/Repositories/miccai23/configs/gan_cinn_conf.yaml")
     print(conf)
     parser = DomainAdaptationParser(conf)
     new_conf = parser.get_new_config()

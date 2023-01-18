@@ -1,7 +1,7 @@
 import FrEIA.framework as Ff
 import FrEIA.modules as Fm
-from domain_adaptation.models.inn_subnets import *
-from domain_adaptation.utils.dimensionality_calculations import calculate_downscale_dimensionality
+from src.models.inn_subnets import *
+from src.utils.dimensionality_calculations import calculate_downscale_dimensionality
 from typing import Union, List, Callable
 
 

@@ -6,10 +6,10 @@ import torch.backends.cudnn as cudnn
 import os
 from datetime import datetime
 
-from domain_adaptation.trainers import get_model
-from domain_adaptation.data import get_data_module
-from domain_adaptation.utils.config_io import load_config, get_conf_path
-from domain_adaptation.utils.parser import DomainAdaptationParser
+from src.trainers import get_model
+from src.data import get_data_module
+from src.utils.config_io import load_config, get_conf_path
+from src.utils.parser import DomainAdaptationParser
 
 cudnn.benchmark = True
 torch.backends.cudnn.enabled = True
