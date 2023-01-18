@@ -2,7 +2,7 @@ import torch
 from abc import ABC
 import numpy as np
 from src.trainers import DomainAdaptationTrainerBase
-from src.figures import col_bar
+from src.visualization import col_bar
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 import os

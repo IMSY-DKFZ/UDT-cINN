@@ -14,6 +14,7 @@ from src.utils.parser import DomainAdaptationParser
 cudnn.benchmark = True
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.deterministic = True
+torch.set_float32_matmul_precision("high")
 
 
 try:
@@ -32,7 +33,7 @@ else:
     EXPERIMENT_NAME = "gan_cinn"
     SAVE_DATA_PATH = "/home/kris/Work/Data/DA_results"
     DATA_BASE_PATH = "/home/kris/Work/Data/domain_adaptation_simulations"
-    PYTHON_PATH = "/home/kris/Work/Repositories/dreherk/DomainAdaptation/domain_adaptation"
+    PYTHON_PATH = "/home/kris/Work/Repositories/miccai23/src"
 
 
 config_path = get_conf_path(PYTHON_PATH, EXPERIMENT_NAME)
@@ -57,7 +58,7 @@ model = model(experiment_config=config)
 logger = TensorBoardLogger(save_dir=save_path, name=time_stamp)
 logger.log_hyperparams(config)
 
-trainer = pl.trainer.Trainer(gpus=1, max_epochs=config.epochs, logger=logger,
+trainer = pl.trainer.Trainer(accelerator='gpu', devices=1, max_epochs=config.epochs, logger=logger,
                              callbacks=[ModelCheckpoint(save_top_k=-1, every_n_epochs=50)],
                              num_sanity_val_steps=0, check_val_every_n_epoch=1,
                              limit_val_batches=1, gradient_clip_val=0.1, gradient_clip_algorithm="value",

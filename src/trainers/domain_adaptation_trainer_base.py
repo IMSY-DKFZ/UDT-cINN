@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from src.figures import col_bar
+from src.visualization import col_bar
 
 
 class DomainAdaptationTrainerBase(pl.LightningModule, ABC):
