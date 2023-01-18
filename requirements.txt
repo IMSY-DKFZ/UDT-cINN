@@ -12,3 +12,9 @@ numpy
 scikit-learn
 scipy
 tqdm
+git+https://github.com/VLL-HD/FrEIA.git
+pytorch-lightning
+omegaconf
+matplotlib_scalebar
+openpyxl
+torch-fidelity
