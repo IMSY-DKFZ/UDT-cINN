@@ -1,0 +1,47 @@
+experiment_name: gan_cinn
+
+high_res_conv: 2
+middle_res_conv: 1
+low_res_conv: 1
+downsampling_levels: 5
+downsampling_type: haar
+clamping: 0.7
+epochs: 250
+seed: 42
+
+
+batch_size: 3
+num_workers: 16
+shuffle: 1
+learning_rate: 0.001
+spectral_consistency: 0
+sc_weight: 0.1
+adversarial_training: 1
+gan_weight: 1
+ml_weight: 1
+recon_criterion: mse        # mse or abs
+noise_aug: 1
+noise_aug_level: 0.5
+image_normalization: standardize    # min_max or standardize
+instant_downsampling: False
+weight_decay: 0.001           # weight decay
+beta1: 0.4                    # Adam parameter
+beta2: 0.999
+
+data:
+  data_set_name: sim     # real_sim, sim or mnist_usps
+  data_dir_a: test_dir_a
+  data_dir_b: test_dir_b
+  used_channels: 16          # int as index of list [700, 855, 10] or list of int as indices, e.g. [0, 3, 6, 15]
+  log: True                 # indicate if data have been taken logarithmic
+
+dis:
+  dim: 64                     # number of filters in the bottommost layer
+  normalization: none                  # normalization layer [none/bn/in/ln]
+  activation: lrelu                # activation function [relu/lrelu/prelu/selu/tanh]
+  n_layer: 3                  # number of layers in D
+  gan_type: lsgan             # GAN loss [lsgan/nsgan]
+  num_scales: 3               # number of scales
+  padding_type: replicate
+  dropout: True
+  dropout_p: 0.2

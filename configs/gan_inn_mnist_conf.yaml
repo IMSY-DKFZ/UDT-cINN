@@ -1,0 +1,47 @@
+experiment_name: gan_inn_mnist
+
+high_res_conv: 2
+middle_res_conv: 2
+low_res_conv: 4
+downsampling_levels: 3
+downsampling_type: haar
+clamping: 1
+epochs: 400
+seed: 42
+
+
+batch_size: 100
+num_workers: 16
+shuffle: 1
+learning_rate: 0.001
+spectral_consistency: 0
+sc_weight: 0.1
+adversarial_training: 1
+gan_weight: 5
+ml_weight: 1
+recon_criterion: mse        # mse or abs
+noise_aug: 1
+noise_aug_level: 0.5
+image_normalization: standardize
+instant_downsampling: True
+weight_decay: 0.001           # weight decay
+beta1: 0.4                    # Adam parameter
+beta2: 0.999
+
+data:
+  data_set_name: mnist_usps     # real_sim, sim or mnist_usps
+  data_dir_a: test_dir_a
+  data_dir_b: test_dir_b
+  used_channels: 0          # int as index of list [700, 855, 10] or list of int as indices, e.g. [0, 3, 6, 15]
+  log: True                 # indicate if data have been taken logarithmic
+
+dis:
+  dim: 32                     # number of filters in the bottommost layer
+  normalization: none                  # normalization layer [none/bn/in/ln]
+  activation: lrelu                # activation function [relu/lrelu/prelu/selu/tanh]
+  n_layer: 2                  # number of layers in D
+  gan_type: lsgan             # GAN loss [lsgan/nsgan]
+  num_scales: 2               # number of scales
+  padding_type: replicate
+  dropout: True
+  dropout_p: 0.2
