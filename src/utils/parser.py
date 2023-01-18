@@ -68,7 +68,7 @@ class DomainAdaptationParser(ArgumentParser):
                 new_config.data.data_dir_a = os.path.join(data_base_path, "MNIST")
                 new_config.data.data_dir_b = os.path.join(data_base_path, "USPS")
             elif data_set_name in ["real_sim", "sim"]:
-                log_string = "_log" if new_config.data.log == "True" else "_sqrt"
+                log_string = "_log" if new_config.data.log else "_sqrt"
                 ms_string = "_ms" if isinstance(new_config.data.used_channels, (ListConfig, list)) else ""
                 folder_name = f"{new_config.image_normalization}_preprocessed_data{log_string}{ms_string}"
                 folder_path = os.path.join(data_base_path, folder_name)
