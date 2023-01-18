@@ -83,6 +83,7 @@ class GanCondinitionalDomainAdaptationINN(DAInnBase):
 
     def build_model(self):
         model = Ff.SequenceINN(*self.dimensions)
+        k = self.config.instant_downsampling
 
         # if self.config.instant_downsampling and ((isinstance(self.config.data.used_channels, (list, ListConfig))
         #                                           and len(self.config.data.used_channels) >= 1)
