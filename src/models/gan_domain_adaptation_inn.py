@@ -1,7 +1,7 @@
 import FrEIA.framework as Ff
 import FrEIA.modules as Fm
 from omegaconf import DictConfig
-from src.models.domain_adaptation_inn_base import DomainAdaptationInn
+from src.models.domain_adaptation_inn_base_pa import DomainAdaptationInn
 from abc import ABC, abstractmethod
 from typing import overload
 import torch

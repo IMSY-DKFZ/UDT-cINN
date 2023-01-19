@@ -9,7 +9,7 @@ import os
 from src.visualization import col_bar
 
 
-class DomainAdaptationTrainerBase(pl.LightningModule, ABC):
+class DomainAdaptationTrainerBasePA(pl.LightningModule, ABC):
     def __init__(self, experiment_config: DictConfig):
         super().__init__()
 

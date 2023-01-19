@@ -1,7 +1,7 @@
 import FrEIA.framework as Ff
 import FrEIA.modules as Fm
 from omegaconf import DictConfig
-from src.trainers import DomainAdaptationTrainerBase
+from src.trainers import DomainAdaptationTrainerBasePA
 import torch
 from src.models.discriminator import MultiScaleDiscriminator
 from src.models.vae import VariationalAutoEncoder
@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import os
 
 
-class UNIT(DomainAdaptationTrainerBase):
+class UNIT(DomainAdaptationTrainerBasePA):
     def __init__(self, experiment_config: DictConfig):
         super().__init__(experiment_config=experiment_config)
 

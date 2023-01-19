@@ -2,7 +2,7 @@ import torch
 import FrEIA.framework as Ff
 import FrEIA.modules as Fm
 from omegaconf import DictConfig
-from src.trainers import DomainAdaptationTrainerBase
+from src.trainers import DomainAdaptationTrainerBasePA
 from src.models.inn_subnets import subnet_conv, subnet_res_net
 from src.models.multiscale_invertible_blocks import append_multi_scale_inn_blocks
 import matplotlib.pyplot as plt
@@ -11,7 +11,7 @@ import numpy as np
 import os
 
 
-class WAICTrainer(DomainAdaptationTrainerBase):
+class WAICTrainer(DomainAdaptationTrainerBasePA):
     def __init__(self, experiment_config: DictConfig):
         super().__init__(experiment_config=experiment_config)
 

@@ -1,14 +1,14 @@
 import torch
 from abc import ABC
 import numpy as np
-from src.trainers import DomainAdaptationTrainerBase
+from src.trainers import DomainAdaptationTrainerBasePA
 from src.visualization import col_bar
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 import os
 
 
-class DAInnBase(DomainAdaptationTrainerBase, ABC):
+class DAInnBase(DomainAdaptationTrainerBasePA, ABC):
 
     def maximum_likelihood_loss(self,
                                 z_a: torch.Tensor,
