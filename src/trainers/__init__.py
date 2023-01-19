@@ -1,4 +1,4 @@
-from src.trainers.domain_adaptation_trainer_base import DomainAdaptationTrainerBasePA
+from src.trainers.domain_adaptation_trainer_base_pa import DomainAdaptationTrainerBasePA
 from src.trainers.inn_trainer_base import DAInnBase
 from src.trainers.conditional_inn_trainer import CondinitionalDomainAdaptationINN
 from src.trainers.gan_inn_trainer import GANDomainAdaptationInn
