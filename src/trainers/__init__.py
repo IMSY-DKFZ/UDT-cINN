@@ -1,5 +1,7 @@
 from src.trainers.domain_adaptation_trainer_base_pa import DomainAdaptationTrainerBasePA
+from src.trainers.domain_adaptation_trainer_base_hsi import DomainAdaptationTrainerBaseHSI
 from src.trainers.inn_trainer_base import DAInnBase
+from src.trainers.inn_trainer_base_hsi import DAInnBaseHSI
 from src.trainers.conditional_inn_trainer import CondinitionalDomainAdaptationINN
 from src.trainers.gan_inn_trainer import GANDomainAdaptationInn
 from src.trainers.unit_trainer import UNIT

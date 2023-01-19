@@ -6,7 +6,6 @@ import pytorch_lightning as pl
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from src.visualization import col_bar
 
 
 class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
@@ -61,7 +60,7 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
     def forward(self, inp, mode="a", *args, **kwargs):
         """
         Forward pass of the domain adaptation model.
-        Each model must implement this method as it defines how the images from each domain are mapped into the latent
+        Each model must implement this method as it defines how the spectra from each domain are mapped into the latent
         space and then to the other domain
 
         :param inp:
@@ -73,10 +72,10 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
         pass
 
     @abstractmethod
-    def translate_spectrum(self, image, input_domain="a"):
+    def translate_spectrum(self, spectrum, input_domain="a"):
         """
 
-        :param image:
+        :param spectrum:
         :param input_domain:
         :return:
         """
@@ -89,8 +88,8 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
 
         spectra_a, spectra_b = self.get_spectra(batch)
 
-        spectra_ab = self.translate_image(spectra_a, input_domain="a")
-        spectra_ba = self.translate_image(spectra_b, input_domain="b")
+        spectra_ab = self.translate_spectrum(spectra_a, input_domain="a")
+        spectra_ba = self.translate_spectrum(spectra_b, input_domain="b")
 
         spectra_a = spectra_a.cpu().numpy()
         spectra_b = spectra_b.cpu().numpy()
@@ -98,10 +97,10 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
         spectra_ba = spectra_ba.cpu().numpy()
 
         np.savez(os.path.join(generated_spectrum_data_path, f"test_batch_{batch_idx}"),
-                 images_a=spectra_a,
-                 images_b=spectra_b,
-                 images_ab=spectra_ab,
-                 images_ba=spectra_ba,
+                 spectra_a=spectra_a,
+                 spectra_b=spectra_b,
+                 spectra_ab=spectra_ab,
+                 spectra_ba=spectra_ba,
                  bvf_a=batch["bvf_a"],
                  bvf_b=batch["bvf_b"],
                  oxy_a=batch["oxy_a"],
@@ -116,5 +115,6 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
             plt.plot(spectra_b, color="blue", linestyle="solid", label="spectrum domain B")
             plt.plot(spectra_ab, color="blue", linestyle="dashed", label="spectrum domain AB")
             plt.plot(spectra_ba, color="green", linestyle="dashed", label="spectrum domain BA")
+            plt.legend()
             plt.savefig(os.path.join(generated_spectra_path, f"test_batch_{batch_idx}.png"))
             plt.close()
