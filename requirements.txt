@@ -12,3 +12,4 @@ numpy
 scikit-learn
 scipy
 tqdm
+--extra-index-url https://read_package:s9zzRtnKbG2DxDqGJfz3@git.dkfz.de/api/v4/projects/13/packages/pypi/simple htc

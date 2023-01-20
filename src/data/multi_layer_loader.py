@@ -18,7 +18,7 @@ class SimulationDataLoader:
         """
         base_data_path = intermediates_dir
 
-        self.simulations = ['generic_depth']
+        self.simulations = ['generic_depth', 'generic_depth_adapted', 'generic_depth_sampled']
         self.splits = ['train', 'validate', 'test']
 
         self.base_path = (base_data_path / 'simulations' / 'multi_layer')
@@ -27,6 +27,18 @@ class SimulationDataLoader:
                 'train': 'generic_depth/train',
                 'validate': 'generic_depth/train',
                 'test': 'generic_depth/test',
+            },
+            'generic_depth_adapted': {
+                'train': 'generic_depth_adapted/train.csv',
+                'test': 'generic_depth_adapted/test.csv'
+            },
+            'generic_depth_sampled': {
+                'train': 'generic_depth_sampled/train.csv',
+                'test': 'generic_depth_sampled/test.csv'
+            },
+            'generic_1_layer': {
+                'train': 'generic_1_layer/train',
+                'test': 'generic_1_layer/test'
             }
         }
 
@@ -62,12 +74,16 @@ class SimulationDataLoader:
 
             rel_path = self.simulation_paths[simulation][split]
             full_path = self.base_path / rel_path
-
-            files = sorted(list(full_path.glob('*.csv')))
+            if full_path.is_dir():
+                files = sorted(list(full_path.glob('*.csv')))
+            elif full_path.is_file():
+                files = sorted([str(full_path)])
+            else:
+                raise ValueError(f"path is neither file nor folder: {full_path}")
 
             local = []
-            for fn in tqdm(files, desc='Files:'):
-                loc = pd.read_csv(fn, header=[0, 1], index_col=0)
+            for fn in tqdm(files, desc='Reading files'):
+                loc = pd.read_csv(fn, header=[0, 1], index_col=None)
                 local.append(loc)
             loc = pd.concat(local, ignore_index=True)
 
