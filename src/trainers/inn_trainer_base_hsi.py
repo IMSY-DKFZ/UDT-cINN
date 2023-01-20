@@ -185,7 +185,7 @@ class DAInnBaseHSI(DomainAdaptationTrainerBaseHSI, ABC):
         plt.plot(spectra_b, color="blue", linestyle="solid", label="spectrum domain B")
         plt.plot(spectra_bab, color="blue", linestyle="", marker="o", label="cycle reconstructed spectrum B")
         plt.plot(spectra_ba, color="blue", linestyle="dashed", label="spectrum domain BA")
-        plt.ylim(-2, 2)
+        plt.ylim(-0.5, 0.5)
         plt.legend()
 
         plt.subplot(2, 1, 2)
