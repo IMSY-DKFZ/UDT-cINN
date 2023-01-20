@@ -11,13 +11,13 @@ class GanCondinitionalDomainAdaptationINNHSI(DAInnBaseHSI):
     def __init__(self, experiment_config: DictConfig):
         super().__init__(experiment_config=experiment_config)
 
-        self.model = self.build_model()
-
         self.n_blocks = self.config.n_blocks
         self.conditional_blocks = self.config.n_conditional_blocks
 
-        self.discriminator_a = DiscriminatorHSI(self.config.dis, self.channels)
-        self.discriminator_b = DiscriminatorHSI(self.config.dis, self.channels)
+        self.model = self.build_model()
+
+        self.discriminator_a = DiscriminatorHSI(self.config.dis, self.dimensions)
+        self.discriminator_b = DiscriminatorHSI(self.config.dis, self.dimensions)
 
     def get_conditions(self, batch_size):
         conditions = dict()
@@ -25,7 +25,7 @@ class GanCondinitionalDomainAdaptationINNHSI(DAInnBaseHSI):
         conditions["b"] = list()
 
         dims = self.dimensions
-        dims.insert(0, batch_size)
+        dims = [batch_size, dims]
 
         for conditional_block in range(self.conditional_blocks):
             cond_noise_a = torch.rand(*dims) * 0.1
@@ -66,7 +66,7 @@ class GanCondinitionalDomainAdaptationINNHSI(DAInnBaseHSI):
         return nn.Sequential(
             nn.Linear(ch_in, self.config.n_hidden),
             nn.ReLU(),
-            nn.Linear(self.ch_hidden.n_hidden, ch_out),
+            nn.Linear(self.config.n_hidden, ch_out),
         )
 
     def build_model(self):
@@ -75,7 +75,7 @@ class GanCondinitionalDomainAdaptationINNHSI(DAInnBaseHSI):
         n_encoding_decoding_blocks = int((self.n_blocks - self.conditional_blocks) / 2)
 
         for _ in range(n_encoding_decoding_blocks):
-            self.model.append(
+            model.append(
                 Fm.AllInOneBlock,
                 subnet_constructor=self.subnet,
                 affine_clamping=self.config.clamping,
@@ -86,11 +86,11 @@ class GanCondinitionalDomainAdaptationINNHSI(DAInnBaseHSI):
             )
 
         for c_block in range(self.conditional_blocks):
-            self.model.append(
+            model.append(
                 Fm.AllInOneBlock,
                 subnet_constructor=self.subnet,
                 cond=c_block,
-                cond_shape=self.dimensions,
+                cond_shape=(self.dimensions,),
                 affine_clamping=self.config.clamping,
                 global_affine_init=self.config.actnorm,
                 permute_soft=False,
@@ -99,7 +99,7 @@ class GanCondinitionalDomainAdaptationINNHSI(DAInnBaseHSI):
             )
 
         for _ in range(self.n_blocks - self.conditional_blocks - n_encoding_decoding_blocks):
-            self.model.append(
+            model.append(
                 Fm.AllInOneBlock,
                 subnet_constructor=self.subnet,
                 affine_clamping=self.config.clamping,

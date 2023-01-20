@@ -103,18 +103,18 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
                  spectra_ba=spectra_ba,
                  bvf_a=batch["bvf_a"],
                  bvf_b=batch["bvf_b"],
-                 oxy_a=batch["oxy_a"],
-                 oxy_b=batch["oxy_b"],
+                 # oxy_a=batch["oxy_a"],
+                 # oxy_b=batch["oxy_b"],
                  )
 
         if True:
             generated_spectra_path = os.path.join(path, "generated_spectra")
             os.makedirs(generated_spectra_path, exist_ok=True)
             plt.figure(figsize=(6, 6))
-            plt.plot(spectra_a, color="green", linestyle="solid", label="spectrum domain A")
-            plt.plot(spectra_b, color="blue", linestyle="solid", label="spectrum domain B")
-            plt.plot(spectra_ab, color="blue", linestyle="dashed", label="spectrum domain AB")
-            plt.plot(spectra_ba, color="green", linestyle="dashed", label="spectrum domain BA")
+            plt.plot(spectra_a[0], color="green", linestyle="solid", label="spectrum domain A")
+            plt.plot(spectra_b[0], color="blue", linestyle="solid", label="spectrum domain B")
+            plt.plot(spectra_ab[0], color="blue", linestyle="dashed", label="spectrum domain AB")
+            plt.plot(spectra_ba[0], color="green", linestyle="dashed", label="spectrum domain BA")
             plt.legend()
             plt.savefig(os.path.join(generated_spectra_path, f"test_batch_{batch_idx}.png"))
             plt.close()

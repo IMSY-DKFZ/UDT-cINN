@@ -87,11 +87,11 @@ class DiscriminatorHSI(nn.Module):
         self.input_dim = input_dim
 
         # activation type
-        if config.activ == "relu":
+        if config.activation == "relu":
             self.activation = nn.ReLU(inplace=True)
-        elif config.activ == "lrelu":
+        elif config.activation == "lrelu":
             self.activation = nn.LeakyReLU(0.2, inplace=True)
-        elif config.activ == "none":
+        elif config.activation == "none":
             self.activation = None
         else:
             raise KeyError(f"Please use a supported activation type: {config.activ}")
@@ -109,13 +109,15 @@ class DiscriminatorHSI(nn.Module):
 
         model_list.append(nn.Linear(self.input_dim, self.hidden_dim))
 
-        for _ in range(self.n_layer - 1):
+        for _ in range(self.n_layer - 2):
             if self.dropout is not None:
                 model_list.append(self.dropout)
             if self.activation is not None:
                 model_list.append(self.activation)
 
             model_list.append(nn.Linear(self.hidden_dim, self.hidden_dim))
+
+        model_list.append(nn.Linear(self.hidden_dim, self.input_dim))
 
         return nn.Sequential(*model_list)
 

@@ -30,7 +30,7 @@ class DAInnBaseHSI(DomainAdaptationTrainerBaseHSI, ABC):
         loss_b = 0.5 * torch.sum(z_b ** 2, dim=1) - jac_b
         loss_b = loss_b.mean()
         total_ml_loss = loss_a + loss_b
-        total_ml_loss /= self.dimensionality
+        total_ml_loss /= self.dimensions
 
         return total_ml_loss
 
@@ -114,14 +114,6 @@ class DAInnBaseHSI(DomainAdaptationTrainerBaseHSI, ABC):
             gen_loss *= self.config.gan_weight
             batch_dictionary["gen_loss"] = gen_loss
 
-            if self.config.spectral_consistency:
-                spectral_consistency_loss = self.spectral_consistency_loss(spectra_a,
-                                                                           spectra_b,
-                                                                           spectra_ab,
-                                                                           spectra_ba)
-
-                batch_dictionary["sc_loss"] = spectral_consistency_loss * self.config.sc_weight
-
         elif optimizer_idx == 1:
             z_a, jac_a = self.forward(spectra_a, mode="a")
             z_b, jac_b = self.forward(spectra_b, mode="b")
@@ -171,14 +163,14 @@ class DAInnBaseHSI(DomainAdaptationTrainerBaseHSI, ABC):
         spectra_ba, _ = self.forward(z_b, mode="a", rev=True)
         spectra_bab, _ = self.forward(self.forward(spectra_ba, mode="a")[0], mode="b", rev=True)
 
-        spectra_a = spectra_a.cpu().numpy()
-        spectra_b = spectra_b.cpu().numpy()
-        spectra_ab = spectra_ab.cpu().numpy()
-        spectra_ba = spectra_ba.cpu().numpy()
-        spectra_bab = spectra_bab.cpu().numpy()
-        spectra_aba = spectra_aba.cpu().numpy()
-        z_a = z_a.cpu().numpy()
-        z_b = z_b.cpu().numpy()
+        spectra_a = spectra_a.cpu().numpy()[0]
+        spectra_b = spectra_b.cpu().numpy()[0]
+        spectra_ab = spectra_ab.cpu().numpy()[0]
+        spectra_ba = spectra_ba.cpu().numpy()[0]
+        spectra_bab = spectra_bab.cpu().numpy()[0]
+        spectra_aba = spectra_aba.cpu().numpy()[0]
+        z_a = z_a.cpu().numpy()[0]
+        z_b = z_b.cpu().numpy()[0]
         mean_z_a, std_z_a = norm.fit(z_a)
         mean_z_b, std_z_b = norm.fit(z_b)
         x_space = np.linspace(-3, 3, 500)
@@ -191,10 +183,12 @@ class DAInnBaseHSI(DomainAdaptationTrainerBaseHSI, ABC):
         plt.plot(spectra_aba, color="green", linestyle="", marker="o", label="cycle reconstructed spectrum A")
         plt.plot(spectra_ab, color="green", linestyle="dashed", label="spectrum domain AB")
         plt.plot(spectra_b, color="blue", linestyle="solid", label="spectrum domain B")
-        plt.plot(spectra_aba, color="blue", linestyle="", marker="o", label="cycle reconstructed spectrum B")
+        plt.plot(spectra_bab, color="blue", linestyle="", marker="o", label="cycle reconstructed spectrum B")
         plt.plot(spectra_ba, color="blue", linestyle="dashed", label="spectrum domain BA")
+        plt.ylim(-2, 2)
+        plt.legend()
 
-        plt.subplot(2, 1, 1)
+        plt.subplot(2, 1, 2)
         plt.hist(z_a, color="green", density=True, bins=50, alpha=0.5, label="spectrum domain A")
         plt.plot(x_space, y_z_a, color="green", label="mean={:1.2f}, std={:1.2f}".format(mean_z_a, std_z_a))
 
