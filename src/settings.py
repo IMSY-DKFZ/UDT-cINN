@@ -31,5 +31,7 @@ if dotenv_path.exists():
 
 # Set Path variables
 intermediates_dir = unify_path(os.getenv('PATH_MICCAI_23_INTERMEDIATES'))
+figures_dir = unify_path(Path(os.getenv('PATH_MICCAI_23_PROJECT')) / 'figures')
 tivita_cam_filters_file = intermediates_dir / 'optics' / 'artificial_tivita_camera_normal.csv'
 tivita_irradiance = intermediates_dir / 'optics' / 'tivita_relative_irradiance_2019_04_05.txt'
+tivita_semantic = unify_path(os.getenv('PATH_MICCAI_23_SEMANTIC_DATASET'))
