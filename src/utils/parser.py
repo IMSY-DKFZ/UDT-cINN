@@ -75,6 +75,9 @@ class DomainAdaptationParser(ArgumentParser):
                 data_dir_b = "bad_simulations" if data_set_name == "sim" else "real_images"
                 new_config.data.data_dir_a = os.path.join(folder_path, "good_simulations")
                 new_config.data.data_dir_b = os.path.join(folder_path, data_dir_b)
+            elif "hsi" in data_set_name:
+                new_config.data.data_dir_a = os.path.join(data_base_path, "HSI_Data", "sampled")
+                new_config.data.data_dir_b = os.path.join(data_base_path, "HSI_Data", "adapted")
             else:
                 raise KeyError("Please select a valid data_set_name out of [mnist_usps, sim, real_sim]!")
 
