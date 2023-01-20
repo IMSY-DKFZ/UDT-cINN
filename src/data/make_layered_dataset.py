@@ -2,7 +2,7 @@ import click
 import numpy as np
 
 from src.data.multi_layer_loader import SimulationDataLoader
-from src.util.susi import adapt_to_camera_reflectance
+from src.utils.susi import adapt_to_camera_reflectance
 from src import settings
 
 

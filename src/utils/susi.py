@@ -5,7 +5,7 @@ from typing import Iterable, List, Union
 import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
-from src.util.camera import ImagingSystem, transform_reflectance
+from src.utils.camera import ImagingSystem, transform_reflectance
 
 
 class Msi:

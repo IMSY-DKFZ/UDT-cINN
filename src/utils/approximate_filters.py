@@ -22,7 +22,7 @@ import warnings
 import pandas as pd
 from typing import Union
 
-from src.util import susi
+from src.utils import susi
 
 
 def approximate_filters(target_filters: str, source_filters: str, optical_system_parts=None,
