@@ -38,19 +38,21 @@ class DomainAdaptationDataModuleHSI(pl.LightningDataModule):
     def setup(self, stage: str = None):
         self.training_data = DomainAdaptationDatasetHSI(root_a=os.path.join(self.data_dir_a, "training.csv"),
                                                         root_b=os.path.join(self.data_dir_b, "training.csv"),
+                                                        experiment_config=self.exp_config,
                                                         )
         self.validation_data = DomainAdaptationDatasetHSI(root_a=os.path.join(self.data_dir_a, "validation.csv"),
                                                           root_b=os.path.join(self.data_dir_b, "validation.csv"),
+                                                          experiment_config=self.exp_config,
                                                           )
         self.test_data = DomainAdaptationDatasetHSI(root_a=os.path.join(self.data_dir_a, "test.csv"),
                                                     root_b=os.path.join(self.data_dir_b, "test.csv"),
+                                                    experiment_config=self.exp_config,
                                                     )
 
     def train_dataloader(self):
         return DataLoader(self.training_data, batch_size=self.batch_size,
                           shuffle=self.exp_config.shuffle, num_workers=self.exp_config.num_workers, pin_memory=True,
                           drop_last=True,
-                          # collate_fn=collate,
                           )
 
     def val_dataloader(self):
@@ -58,15 +60,17 @@ class DomainAdaptationDataModuleHSI(pl.LightningDataModule):
                           shuffle=True,
                           num_workers=self.exp_config.num_workers, pin_memory=True,
                           drop_last=True,
-                          # collate_fn=collate,
                           )
 
     def test_dataloader(self):
         return DataLoader(self.test_data, batch_size=1,
                           num_workers=self.exp_config.num_workers, pin_memory=True,
                           drop_last=True,
-                          # collate_fn=collate,
                           )
 
     def adjust_experiment_config(self):
         self.exp_config.data.dimensions = self.dimensions
+        self.exp_config.data.mean_a = self.data_config_a.mean
+        self.exp_config.data.mean_b = self.data_config_b.mean
+        self.exp_config.data.std_a = self.data_config_a.std
+        self.exp_config.data.std_b = self.data_config_b.std
