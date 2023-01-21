@@ -29,6 +29,7 @@ omegaconf = "*"
 matplotlib_scalebar = "*"
 openpyxl = "*"
 torch-fidelity = "*"
+tensorboard = "*"
 
 [tool.poetry.group.docs.dependencies]
 sphinx-rtd-theme = "^1.0.0"
