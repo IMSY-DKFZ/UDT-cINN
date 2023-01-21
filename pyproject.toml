@@ -1,0 +1,42 @@
+[tool.poetry]
+name = "ms_da"
+version = "0.0.1"
+description = "This is the project repo for the unsupervised domain adaptation project submitted to miccai23"
+authors = ["Kris Dreher <k.dreher@dkfz-heidelberg.de>"]
+license = "MIT"
+readme = "README.md"
+
+packages = [
+    { include = "src" },
+]
+
+# Requirements
+[tool.poetry.dependencies]
+FrEIA = { git = "https://github.com/VLL-HD/FrEIA.git" }
+# htc = { git = "https://read_package:s9zzRtnKbG2DxDqGJfz3@git.dkfz.de/api/v4/projects/13/packages/pypi/simple" }
+click = "*"
+Sphinx = "*"
+coverage = "*"
+flake8 = "*"
+python-dotenv = ">=0.5.1"
+pandas = "*"
+numpy  = "*"
+scikit-learn = "*"
+scipy = "*"
+tqdm = "*"
+pytorch-lightning = "*"
+omegaconf = "*"
+matplotlib_scalebar = "*"
+openpyxl = "*"
+torch-fidelity = "*"
+
+[tool.poetry.group.docs.dependencies]
+sphinx-rtd-theme = "^1.0.0"
+Sphinx = "^5.1.1"
+myst-parser = "^0.18.0"
+
+[build-system]
+requires = [
+    "poetry >= 0.12"
+]
+build-backend = "poetry.masonry.api"
