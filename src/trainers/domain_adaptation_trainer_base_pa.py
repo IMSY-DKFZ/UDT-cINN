@@ -130,6 +130,14 @@ class DomainAdaptationTrainerBasePA(pl.LightningModule, ABC):
         images_ab = images_ab.cpu().numpy()
         images_ba = images_ba.cpu().numpy()
 
+        if self.config.normalization not in ["None", "none"]:
+            if self.config.normalization == "standardize":
+                images_a = images_a * self.config.data.std_a + self.config.data.mean_a
+                images_ba = images_ba * self.config.data.std_a + self.config.data.mean_a
+
+                images_b = images_b * self.config.data.std_b + self.config.data.mean_b
+                images_ab = images_ab * self.config.data.std_b + self.config.data.mean_b
+
         np.savez(os.path.join(generated_image_data_path, f"test_batch_{batch_idx}"),
                  images_a=images_a,
                  images_b=images_b,

@@ -50,15 +50,15 @@ class DomainAdaptationDataModule(pl.LightningDataModule):
     def setup(self, stage: str = None):
         self.training_data = DomainAdaptationDataset(root_a=os.path.join(self.data_dir_a, "training/*.np*"),
                                                      root_b=os.path.join(self.data_dir_b, "training/*.np*"),
-                                                     used_channels=self.used_channels,
+                                                     experiment_config=self.exp_config,
                                                      )
         self.validation_data = DomainAdaptationDataset(root_a=os.path.join(self.data_dir_a, "validation/*.np*"),
                                                        root_b=os.path.join(self.data_dir_b, "validation/*.np*"),
-                                                       used_channels=self.used_channels,
+                                                       experiment_config=self.exp_config,
                                                        )
         self.test_data = DomainAdaptationDataset(root_a=os.path.join(self.data_dir_a, "test/*.np*"),
                                                  root_b=os.path.join(self.data_dir_b, "test/*.np*"),
-                                                 used_channels=self.used_channels,
+                                                 experiment_config=self.exp_config,
                                                  )
 
     def train_dataloader(self):
@@ -82,3 +82,8 @@ class DomainAdaptationDataModule(pl.LightningDataModule):
 
     def adjust_experiment_config(self):
         self.exp_config.data.dimensions = self.dimensions
+        self.exp_config.data.mean_a = self.data_config_a.mean
+        self.exp_config.data.mean_b = self.data_config_b.mean
+        self.exp_config.data.std_a = self.data_config_a.std
+        self.exp_config.data.std_b = self.data_config_b.std
+

@@ -5,11 +5,12 @@ import glob
 import torch
 import numpy as np
 from typing import Iterable, Union, Sized
+from omegaconf import DictConfig
 
 
 class DomainAdaptationDataset(Dataset):
-    def __init__(self, root_a, root_b, noise_aug: bool = False, noise_std: float = 0.3,
-                 used_channels: Union[Iterable, Sized, int] = np.s_[:]):
+    def __init__(self, root_a: str, root_b: str, experiment_config: DictConfig,
+                 noise_aug: bool = False, noise_std: float = 0.3):
 
         self.image_list_a = sorted(glob.glob(root_a))
         self.image_list_b = sorted(glob.glob(root_b))
@@ -17,10 +18,17 @@ class DomainAdaptationDataset(Dataset):
         self.image_list_a_length = len(self.image_list_a)
         self.image_list_b_length = len(self.image_list_b)
 
+        self.exp_config = experiment_config
+
         self.noise_aug = noise_aug
         self.noise_std = noise_std
 
-        self.used_channels = used_channels
+        self.used_channels = experiment_config.data.used_channels
+
+        if experiment_config.normalization not in ["None", "none"]:
+            self.normalization = experiment_config.normalization
+        else:
+            self.normalization = False
 
     def __getitem__(self, index):
         path_a = self.image_list_a[index % self.image_list_a_length]
@@ -65,6 +73,13 @@ class DomainAdaptationDataset(Dataset):
         else:
             raise ValueError("attribute used_channels must be of the type slice, int iterable or Sized.")
 
+        # normalization
+        if self.normalization:
+            if self.normalization == "standardize":
+                img_a = (img_a - self.exp_config.data["mean_a"]) / self.exp_config.data["std_a"]
+                img_b = (img_b - self.exp_config.data["mean_b"]) / self.exp_config.data["std_b"]
+
+        # image flipping
         if torch.rand(1).item() < 0.5:
             img_a = torch.flip(img_a, [2])
             param_dict = {"seg": seg_a, "oxy": oxy_a}
