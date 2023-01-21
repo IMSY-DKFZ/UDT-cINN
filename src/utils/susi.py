@@ -341,9 +341,7 @@ def load_filter_response(filter_response: Union[str, pd.DataFrame], df_w: Union[
         f = filter_response.copy()
     elif os.path.isfile(filter_response):
         filename, file_extension = os.path.splitext(filter_response)
-        if file_extension == '.xml':
-            f = get_camera_calibration_info_df(filter_response)
-        elif file_extension == '.csv':
+        if file_extension == '.csv':
             f = get_filter_response(filter_response)
             if f.empty:
                 raise IOError(".csv file not in expected format.")

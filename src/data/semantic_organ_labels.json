@@ -1,0 +1,15 @@
+{
+  "organ_labels": [
+    "bladder",
+    "colon",
+    "fat",
+    "gallbladder",
+    "liver",
+    "omentum",
+    "peritoneum",
+    "skin",
+    "small_bowel",
+    "spleen",
+    "stomach"
+  ]
+}
