@@ -5,12 +5,12 @@ middle_res_conv: 1
 low_res_conv: 1
 downsampling_levels: 5
 downsampling_type: haar
-clamping: 0.7
+clamping: 1.
 epochs: 250
 seed: 42
 
 
-batch_size: 3
+batch_size: 2
 num_workers: 16
 shuffle: 1
 learning_rate: 0.001

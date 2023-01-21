@@ -2,7 +2,7 @@ experiment_name: gan_cinn_hsi
 
 
 n_blocks: 20
-n_conditional_blocks: 10
+n_conditional_blocks: 15
 clamping: 1.0
 actnorm: .7
 n_reflections: 0
