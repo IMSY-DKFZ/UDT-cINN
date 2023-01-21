@@ -15,8 +15,7 @@ files_data_set_2 = glob.glob(os.path.join(data_set_2_root, "*.npz"))
 # files_data_set_3 = glob.glob(os.path.join(data_set_3_root, "*.npz"))
 
 
-def calculate_mean_spectrum(image_files: list, return_std: bool = True, number_of_wavelengths: int = 16,
-                            visualize: bool = False):
+def calculate_mean_spectrum(image_files: list, return_std: bool = True, visualize: bool = False):
 
     artery_spectra_all = list()
     vein_spectra_all = list()
