@@ -96,6 +96,14 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
         spectra_ab = spectra_ab.cpu().numpy()
         spectra_ba = spectra_ba.cpu().numpy()
 
+        if self.config.normalization not in ["None", "none"]:
+            if self.config.normalization == "standardize":
+                spectra_a = spectra_a * self.config.data.std_a + self.config.data.mean_a
+                spectra_ba = spectra_ba * self.config.data.std_a + self.config.data.mean_a
+
+                spectra_b = spectra_b * self.config.data.std_b + self.config.data.mean_b
+                spectra_ab = spectra_ab * self.config.data.std_b + self.config.data.mean_b
+
         np.savez(os.path.join(generated_spectrum_data_path, f"test_batch_{batch_idx}"),
                  spectra_a=spectra_a,
                  spectra_b=spectra_b,
