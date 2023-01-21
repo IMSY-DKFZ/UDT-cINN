@@ -5,6 +5,7 @@ from src.trainers import DAInnBaseHSI
 import torch
 import torch.nn as nn
 from src.models.discriminator import DiscriminatorHSI
+from src.models.inn_subnets import weight_init
 
 
 class GanCondinitionalDomainAdaptationINNHSI(DAInnBaseHSI):
@@ -63,27 +64,19 @@ class GanCondinitionalDomainAdaptationINNHSI(DAInnBaseHSI):
         return [*inn_optimizer, dis_optimizer], scheduler_list
 
     def subnet(self, ch_in, ch_out):
-        return nn.Sequential(
+        net = nn.Sequential(
             nn.Linear(ch_in, self.config.n_hidden),
             nn.ReLU(),
             nn.Linear(self.config.n_hidden, ch_out),
         )
 
+        net.apply(lambda m: weight_init(m, gain=1.))
+        return net
+
     def build_model(self):
         model = Ff.SequenceINN(self.dimensions)
 
-        n_encoding_decoding_blocks = int((self.n_blocks - self.conditional_blocks) / 2)
-
-        for _ in range(n_encoding_decoding_blocks):
-            model.append(
-                Fm.AllInOneBlock,
-                subnet_constructor=self.subnet,
-                affine_clamping=self.config.clamping,
-                global_affine_init=self.config.actnorm,
-                permute_soft=False,
-                learned_householder_permutation=self.config.n_reflections,
-                reverse_permutation=True,
-            )
+        n_shared_blocks = int(self.n_blocks - self.conditional_blocks)
 
         for c_block in range(self.conditional_blocks):
             model.append(
@@ -98,7 +91,7 @@ class GanCondinitionalDomainAdaptationINNHSI(DAInnBaseHSI):
                 reverse_permutation=True,
             )
 
-        for _ in range(self.n_blocks - self.conditional_blocks - n_encoding_decoding_blocks):
+        for _ in range(n_shared_blocks):
             model.append(
                 Fm.AllInOneBlock,
                 subnet_constructor=self.subnet,
