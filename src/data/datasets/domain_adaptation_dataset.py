@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 import glob
 import torch
 import numpy as np
-from typing import Iterable, Union, Sized
+from typing import Iterable, Sized
 from omegaconf import DictConfig
 
 
@@ -101,13 +101,13 @@ class DomainAdaptationDataset(Dataset):
 
             seg_b, oxy_b = param_dict["seg"], param_dict["oxy"]
 
-        # if self.noise_aug:
-        #     img_a += torch.normal(0.0, self.noise_std, size=img_a.shape)
-        #     img_b += torch.normal(0.0, self.noise_std, size=img_b.shape)
+        if self.noise_aug:
+            img_a += torch.normal(0.0, self.noise_std, size=img_a.shape)
+            img_b += torch.normal(0.0, self.noise_std, size=img_b.shape)
 
         return {"image_a": img_a.type(torch.float32), "image_b": img_b.type(torch.float32),
-                "seg_a": seg_a, "seg_b": seg_b,
-                "oxy_a": oxy_a, "oxy_b": oxy_b}
+                "seg_a": seg_a.squeeze(), "seg_b": seg_b,
+                "oxy_a": oxy_a.squeeze(), "oxy_b": oxy_b}
 
     def __len__(self):
         return min(self.image_list_a_length, self.image_list_b_length)
