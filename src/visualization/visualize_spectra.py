@@ -6,9 +6,9 @@ import matplotlib
 matplotlib.use('TkAgg')
 
 
-data_set_1_root = "/home/kris/Work/Data/domain_adaptation_simulations/min_max_preprocessed_data_sqrt_ms/good_simulations/training"
-data_set_2_root = "/home/kris/Work/Data/domain_adaptation_simulations/min_max_preprocessed_data_sqrt_ms/real_images/training"
-data_set_3_root = "/home/kris/Work/Data/DA_results/miccai/domain_adaptation_results/gan_cinn/2023_01_21_20_14_29/testing/training"
+data_set_1_root = "/home/kris/Work/Data/domain_adaptation_simulations/min_max_preprocessed_data_sqrt_ms/good_simulations/validation"
+data_set_2_root = "/home/kris/Work/Data/domain_adaptation_simulations/min_max_preprocessed_data_sqrt_ms/real_images/validation"
+data_set_3_root = "/home/kris/Work/Data/DA_results/gan_cinn/2023_01_23_22_47_44/testing/training"
 data_set_4_root = "/home/kris/Work/Data/DA_results/miccai/domain_adaptation_results/unit/2023_01_21_20_14_58/testing/training"
 
 files_data_set_1 = glob.glob(os.path.join(data_set_1_root, "*.npz"))
@@ -142,9 +142,9 @@ if __name__ == "__main__":
     plt.fill_between(wavelengths, gan_cinn_spectra["mean_artery_spectra"] - gan_cinn_spectra["std_artery_spectra"],
                      gan_cinn_spectra["mean_artery_spectra"] + gan_cinn_spectra["std_artery_spectra"], alpha=0.3)
 
-    plt.plot(wavelengths, unit_spectra["mean_artery_spectra"], label="unit arteries")
-    plt.fill_between(wavelengths, unit_spectra["mean_artery_spectra"] - unit_spectra["std_artery_spectra"],
-                     unit_spectra["mean_artery_spectra"] + unit_spectra["std_artery_spectra"], alpha=0.3)
+    # plt.plot(wavelengths, unit_spectra["mean_artery_spectra"], label="unit arteries")
+    # plt.fill_between(wavelengths, unit_spectra["mean_artery_spectra"] - unit_spectra["std_artery_spectra"],
+    #                  unit_spectra["mean_artery_spectra"] + unit_spectra["std_artery_spectra"], alpha=0.3)
 
     plt.legend()
 
@@ -163,9 +163,9 @@ if __name__ == "__main__":
     plt.fill_between(wavelengths, gan_cinn_spectra["mean_vein_spectra"] - gan_cinn_spectra["std_vein_spectra"],
                      gan_cinn_spectra["mean_vein_spectra"] + gan_cinn_spectra["std_vein_spectra"], alpha=0.3)
 
-    plt.plot(wavelengths, unit_spectra["mean_vein_spectra"], label="unit veins")
-    plt.fill_between(wavelengths, unit_spectra["mean_vein_spectra"] - unit_spectra["std_vein_spectra"],
-                     unit_spectra["mean_vein_spectra"] + unit_spectra["std_vein_spectra"], alpha=0.3)
+    # plt.plot(wavelengths, unit_spectra["mean_vein_spectra"], label="unit veins")
+    # plt.fill_between(wavelengths, unit_spectra["mean_vein_spectra"] - unit_spectra["std_vein_spectra"],
+    #                  unit_spectra["mean_vein_spectra"] + unit_spectra["std_vein_spectra"], alpha=0.3)
 
     plt.legend()
 

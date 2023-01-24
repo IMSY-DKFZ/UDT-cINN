@@ -4,7 +4,7 @@ import os
 
 from src.utils.config_io import load_config
 
-test_set_root = "/home/kris/Work/Data/DA_results/miccai/domain_adaptation_results/gan_cinn/2023_01_21_20_14_29"
+test_set_root = "/home/kris/Work/Data/DA_results/gan_cinn/2023_01_23_22_47_44"
 data_set_type = "real_images"
 
 config = load_config(os.path.join(test_set_root, "version_0", "hparams.yaml"))
