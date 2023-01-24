@@ -23,13 +23,13 @@ class VariationalAutoEncoder(nn.Module):
 
     def forward(self, images):
         # This is a reduced VAE implementation where we assume the outputs are multivariate Gaussian distribution with mean = hiddens and std_dev = all ones.
-        hiddens = self.encode(images)
+        hiddens, _ = self.encode(images)
         if self.training == True:
             noise = Variable(torch.randn(hiddens.size()).cuda(hiddens.data.get_device()))
             images_recon = self.decode(hiddens + noise)
         else:
             images_recon = self.decode(hiddens)
-        return images_recon, hiddens
+        return images_recon
 
     def encode(self, images):
         hiddens = self.enc(images)
