@@ -86,6 +86,6 @@ class DomainAdaptationDataModule(pl.LightningDataModule):
         self.exp_config.data.mean_b = self.data_config_b.mean
         self.exp_config.data.std_a = self.data_config_a.std
         self.exp_config.data.std_b = self.data_config_b.std
-        self.exp_config.data.n_classes = self.data_config_b.n_classes
-        self.exp_config.data.class_prevalences = self.data_config_b.class_prevalences
+        self.exp_config.data.n_classes = self.data_config_a.n_classes
+        self.exp_config.data.class_prevalences = self.data_config_a.class_prevalences
 
