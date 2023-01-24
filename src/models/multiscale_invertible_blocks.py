@@ -9,7 +9,8 @@ def append_multi_scale_inn_blocks(nodes: Ff.SequenceINN, num_scales: int, blocks
                                   dimensions: List, subnets: Union[Callable, List[Callable]],
                                   downsampling_type: str = "haar", instant_downsampling: bool = False,
                                   conditional_blocks: bool = False, varying_kernel_size: bool = False,
-                                  flatten: bool = False, clamping: float = 1.):
+                                  flatten: bool = False, clamping: float = 1.,
+                                  condition_type: str = "domain"):
     """
 
     :param nodes: sequence inn to append the ms inn blocks to
@@ -23,6 +24,7 @@ def append_multi_scale_inn_blocks(nodes: Ff.SequenceINN, num_scales: int, blocks
     :param varying_kernel_size:
     :param flatten:
     :param clamping:
+    :param condition_type:
     """
 
     if isinstance(blocks_per_scale, int):
@@ -58,7 +60,7 @@ def append_multi_scale_inn_blocks(nodes: Ff.SequenceINN, num_scales: int, blocks
                 subnet = subnets[scale]
             if conditional_blocks:
                 condition = scale
-                orig_dims[0] = 2
+                orig_dims[0] = 9 if condition_type == "segmentation" and scale == 0 else 2
                 condition_shape = orig_dims
             append_all_in_one_block(nodes,
                                     sub_network=subnet,

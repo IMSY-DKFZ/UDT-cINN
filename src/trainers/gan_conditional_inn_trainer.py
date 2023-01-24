@@ -1,12 +1,12 @@
 import FrEIA.framework as Ff
 import FrEIA.modules as Fm
-from omegaconf import DictConfig,ListConfig
+from omegaconf import DictConfig
 from src.trainers import DAInnBase
 import torch
+import numpy as np
 from src.models.discriminator import MultiScaleDiscriminator
-from src.models.inn_subnets import subnet_conv, subnet_res_net, subnet_conv_adaptive, subnet_res_net_adaptive
-from src.utils.dimensionality_calculations import calculate_downscale_dimensionality
-from src.models.multiscale_invertible_blocks import append_multi_scale_inn_blocks, append_all_in_one_block
+from src.models.inn_subnets import subnet_conv, subnet_conv_adaptive
+from src.models.multiscale_invertible_blocks import append_multi_scale_inn_blocks
 
 
 class GanCondinitionalDomainAdaptationINN(DAInnBase):
@@ -36,39 +36,68 @@ class GanCondinitionalDomainAdaptationINN(DAInnBase):
 
         return condition_shapes
 
-    def get_conditions(self, batch_size):
-        conditions = dict()
-        conditions["a"] = list()
-        conditions["b"] = list()
+    def get_conditions(self, batch_size, mode: str = "a", segmentation: torch.Tensor = None):
 
-        for condition_shape in self.condition_shapes:
+        conditions = list()
+
+        for c, condition_shape in enumerate(self.condition_shapes):
             dims = condition_shape.copy()
 
             dims.insert(0, batch_size)
             dims[1] = 2
-            condition_a = torch.zeros(*dims)
+            condition = torch.zeros(*dims)
             cond_noise = torch.rand(*dims) * 0.1
-            condition_a[:, 0, :, :] = 1 - cond_noise[:, 0, :, :]
-            condition_a[:, 1, :, :] = cond_noise[:, 0, :, :]
-            condition_b = torch.zeros(*dims)
-            condition_b[:, 1, :, :] = 1 - cond_noise[:, 1, :, :]
-            condition_b[:, 0, :, :] = cond_noise[:, 1, :, :]
-            conditions["a"].append(condition_a.cuda())
-            conditions["b"].append(condition_b.cuda())
+
+            if mode == "a":
+                condition[:, 0, :, :] = 1 - cond_noise[:, 0, :, :]
+                condition[:, 1, :, :] = cond_noise[:, 0, :, :]
+            elif mode == "b":
+                condition[:, 1, :, :] = 1 - cond_noise[:, 1, :, :]
+                condition[:, 0, :, :] = cond_noise[:, 1, :, :]
+
+            if c == 0 and segmentation is not None:
+                n_classes = self.config.data.n_classes
+
+                if isinstance(segmentation, int) and segmentation == 0:
+                    one_hot_seg_shape = list(condition.size())
+                    one_hot_seg_shape.pop(1)
+                    random_segmentation = np.random.choice(range(n_classes), size=one_hot_seg_shape,
+                                                           p=list(self.config.data.class_prevalences.values()))
+
+                    segmentation = torch.from_numpy(random_segmentation).type(torch.float32)
+
+                one_hot_seg = torch.stack(
+                    [(segmentation == label) + torch.rand_like(segmentation)*0.1 for label in range(n_classes)],
+                    dim=1
+                )
+                one_hot_seg /= torch.linalg.norm(one_hot_seg, dim=1, keepdim=True, ord=1)
+
+                condition = torch.cat((condition, one_hot_seg), dim=1)
+
+            conditions.append(condition.cuda())
         return conditions
 
     def forward(self, inp, mode="a", *args, **kwargs):
 
+        segmentation = 0
+        if isinstance(inp, tuple):
+            segmentation = inp[1].clone()
+            return_segmentation = inp[1].clone()
+            inp = inp[0]
+
         if mode == "a":
-            conditions = self.get_conditions(inp.size()[0])["a"]
+            conditions = self.get_conditions(inp.size()[0], mode="a", segmentation=segmentation)
         elif mode == "b":
-            conditions = self.get_conditions(inp.size()[0])["b"]
+            conditions = self.get_conditions(inp.size()[0], mode="b", segmentation=segmentation)
         else:
             raise AttributeError("Specify either mode 'a' or 'b'!")
 
         out, jac = self.model(inp, c=conditions, *args, **kwargs)
 
-        return out, jac
+        if isinstance(segmentation, int) and segmentation == 0:
+            return out, jac
+        else:
+            return (out, return_segmentation), jac
 
     def training_step(self, batch, batch_idx, optimizer_idx, *args, **kwargs):
         return self.gan_inn_training_step(batch, optimizer_idx)
@@ -112,6 +141,7 @@ class GanCondinitionalDomainAdaptationINN(DAInnBase):
             dimensions=self.dimensions,
             subnets=[subnet_conv, subnet_conv, subnet_conv_adaptive, subnet_conv_adaptive, subnet_conv],
             conditional_blocks=True,
+            condition_type=self.config.condition,
             clamping=self.config.clamping,
             instant_downsampling=self.config.instant_downsampling,
             varying_kernel_size=False

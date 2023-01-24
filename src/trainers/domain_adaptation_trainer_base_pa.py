@@ -22,7 +22,8 @@ class DomainAdaptationTrainerBasePA(pl.LightningModule, ABC):
     def model_name(self):
         return self._get_name()
 
-    def aggregate_total_loss(self, losses_dict: Dict):
+    @staticmethod
+    def aggregate_total_loss(losses_dict: Dict):
         total_loss = 0
         for loss_name, loss_value in losses_dict.items():
             total_loss += loss_value
@@ -35,13 +36,16 @@ class DomainAdaptationTrainerBasePA(pl.LightningModule, ABC):
             self.log(loss_key, loss_value, on_step=True, on_epoch=True, prog_bar=True, logger=True,
                      batch_size=self.config.batch_size)
 
-    @staticmethod
-    def get_images(batch) -> Tuple[torch.Tensor, torch.Tensor]:
+    def get_images(self, batch) -> Tuple[torch.Tensor, torch.Tensor]:
         images_a = batch["image_a"]
         images_b = batch["image_b"]
         images_a, images_b = images_a.cuda(non_blocking=True), images_b.cuda(non_blocking=True)
-
-        return images_a, images_b
+        if self.config.condition == "segmentation":
+            seg_a = torch.from_numpy(np.array(batch["seg_a"])).type(torch.float32)
+            ret_data = (images_a, seg_a), images_b
+        else:
+            ret_data = images_a, images_b
+        return ret_data
 
     def spectral_consistency_loss(self, images_a, images_b, images_ab, images_ba, sc_criterion=0.7):
         """
@@ -118,17 +122,20 @@ class DomainAdaptationTrainerBasePA(pl.LightningModule, ABC):
         generated_image_data_path = os.path.join(path, "generated_image_data")
         os.makedirs(generated_image_data_path, exist_ok=True)
 
-        images_a, images_b = self.get_images(batch)
+        if self.config.condition == "segmentation":
+            (images_a, seg_a), images_b = self.get_images(batch)
+        else:
+            images_a, images_b = self.get_images(batch)
         if len(images_a) == 5 or len(images_a) == 5:
             images_a, images_b = torch.squeeze(images_a, dim=0), torch.squeeze(images_b, dim=0)
 
         images_ab = self.translate_image(images_a, input_domain="a")
         images_ba = self.translate_image(images_b, input_domain="b")
 
-        images_a = images_a.cpu().numpy()
-        images_b = images_b.cpu().numpy()
-        images_ab = images_ab.cpu().numpy()
-        images_ba = images_ba.cpu().numpy()
+        images_a = images_a[0].cpu().numpy() if isinstance(images_a, tuple) else images_a.cpu().numpy()
+        images_b = images_b[0].cpu().numpy() if isinstance(images_b, tuple) else images_b.cpu().numpy()
+        images_ab = images_ab[0].cpu().numpy() if isinstance(images_ab, tuple) else images_ab.cpu().numpy()
+        images_ba = images_ba[0].cpu().numpy() if isinstance(images_ba, tuple) else images_ba.cpu().numpy()
 
         if self.config.normalization not in ["None", "none"]:
             if self.config.normalization == "standardize":
