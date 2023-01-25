@@ -28,6 +28,7 @@ weight_decay: 0.001           # weight decay
 beta1: 0.4                    # Adam parameter
 beta2: 0.999
 condition: segmentation       # segmentation, domain, both
+label_noise: False
 
 data:
   data_set_name: real_sim     # real_sim, sim or mnist_usps

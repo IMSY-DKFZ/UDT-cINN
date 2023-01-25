@@ -61,16 +61,20 @@ class GanCondinitionalDomainAdaptationINN(DAInnBase):
                 if isinstance(segmentation, int) and segmentation == 0:
                     one_hot_seg_shape = list(condition.size())
                     one_hot_seg_shape.pop(1)
-                    random_segmentation = np.random.choice(range(n_classes), size=one_hot_seg_shape,
-                                                           p=list(self.config.data.class_prevalences.values()))
+                    # random_segmentation = np.random.choice(range(n_classes), size=one_hot_seg_shape,
+                    #                                        p=list(self.config.data.class_prevalences.values()))
+                    random_segmentation = np.random.choice(range(n_classes), size=one_hot_seg_shape)
 
                     segmentation = torch.from_numpy(random_segmentation).type(torch.float32)
 
-                one_hot_seg = torch.stack(
-                    [(segmentation == label) + torch.rand_like(segmentation)*0.1 for label in range(n_classes)],
-                    dim=1
-                )
-                one_hot_seg /= torch.linalg.norm(one_hot_seg, dim=1, keepdim=True, ord=1)
+                if self.config.label_noise:
+                    one_hot_seg = torch.stack(
+                        [(segmentation == label) + torch.rand_like(segmentation) * 0.1 for label in range(n_classes)],
+                        dim=1
+                    )
+                    one_hot_seg /= torch.linalg.norm(one_hot_seg, dim=1, keepdim=True, ord=1)
+                else:
+                    one_hot_seg = torch.stack([(segmentation == label) for label in range(n_classes)], dim=1)
 
                 condition = torch.cat((condition, one_hot_seg), dim=1)
 
