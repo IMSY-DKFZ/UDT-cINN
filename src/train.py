@@ -60,11 +60,11 @@ data_module = data_module(experiment_config=config)
 model = model(experiment_config=config)
 logger = TensorBoardLogger(save_dir=save_path, name=time_stamp)
 logger.log_hyperparams(config)
-config.epochs = 1
+
 trainer = pl.trainer.Trainer(accelerator='gpu', devices=1, max_epochs=config.epochs, logger=logger,
                              callbacks=[ModelCheckpoint(save_top_k=-1, every_n_epochs=50)],
                              num_sanity_val_steps=0, check_val_every_n_epoch=1,
-                             limit_val_batches=1, limit_train_batches=1, limit_test_batches=1, gradient_clip_val=0.1, gradient_clip_algorithm="value",
+                             limit_val_batches=1, gradient_clip_val=0.1, gradient_clip_algorithm="value",
                              deterministic=False)
 trainer.fit(model, datamodule=data_module)
 trainer.test(model, datamodule=data_module)
