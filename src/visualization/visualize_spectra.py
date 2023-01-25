@@ -8,7 +8,7 @@ matplotlib.use('TkAgg')
 
 data_set_1_root = "/home/kris/Work/Data/domain_adaptation_simulations/min_max_preprocessed_data_sqrt_ms/good_simulations/validation"
 data_set_2_root = "/home/kris/Work/Data/domain_adaptation_simulations/min_max_preprocessed_data_sqrt_ms/real_images/validation"
-data_set_3_root = "/home/kris/Work/Data/DA_results/gan_cinn/2023_01_23_22_47_44/testing/training"
+data_set_3_root = "/home/kris/Work/Data/DA_results/miccai/domain_adaptation_results/gan_cinn/2023_01_24_16_16_21/testing/training"
 data_set_4_root = "/home/kris/Work/Data/DA_results/miccai/domain_adaptation_results/unit/2023_01_21_20_14_58/testing/training"
 
 files_data_set_1 = glob.glob(os.path.join(data_set_1_root, "*.npz"))
