@@ -69,7 +69,7 @@ class GanCondinitionalDomainAdaptationINN(DAInnBase):
 
                 if self.config.label_noise:
                     one_hot_seg = torch.stack(
-                        [(segmentation == label) + torch.rand_like(segmentation) * 0.1 for label in range(n_classes)],
+                        [(segmentation == label) + torch.rand_like(segmentation) * 0.05 for label in range(n_classes)],
                         dim=1
                     )
                     one_hot_seg /= torch.linalg.norm(one_hot_seg, dim=1, keepdim=True, ord=1)
