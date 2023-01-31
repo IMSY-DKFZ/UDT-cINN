@@ -8,8 +8,8 @@ from omegaconf import DictConfig
 class DomainAdaptationDatasetHSI(Dataset):
     def __init__(self, root_a, root_b, experiment_config: DictConfig):
 
-        self.df_a = pd.read_csv(root_a, header=[0, 1], index_col=0)
-        self.df_b = pd.read_csv(root_b, header=[0, 1], index_col=0)
+        self.df_a = pd.read_csv(root_a, header=[0, 1], index_col=None)
+        self.df_b = pd.read_csv(root_b, header=[0, 1], index_col=None)
 
         self.refl_a = torch.tensor(self.df_a.reflectances.values)
         self.refl_b = torch.tensor(self.df_b.reflectances.values)
