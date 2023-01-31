@@ -111,8 +111,8 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
                  spectra_ba=spectra_ba,
                  bvf_a=batch["bvf_a"],
                  bvf_b=batch["bvf_b"],
-                 # oxy_a=batch["oxy_a"],
-                 # oxy_b=batch["oxy_b"],
+                 oxy_a=batch["oxy_a"],
+                 oxy_b=batch["oxy_b"],
                  )
 
         if True:
