@@ -33,7 +33,7 @@ if run_by_bash:
     PYTHON_PATH = os.environ["PYTHON_PATH"]
 
 else:
-    EXPERIMENT_NAME = "unit"
+    EXPERIMENT_NAME = "gan_cinn"
     SAVE_DATA_PATH = "/home/kris/Work/Data/DA_results"
     DATA_BASE_PATH = "/home/kris/Work/Data/domain_adaptation_simulations"
     PYTHON_PATH = "/home/kris/Work/Repositories/miccai23/src"
