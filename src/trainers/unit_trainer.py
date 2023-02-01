@@ -53,7 +53,7 @@ class UNIT(DomainAdaptationTrainerBasePA):
 
             seg_a = images_a[1]
             seg_a = torch.stack(
-                [(seg_a == label) + torch.rand_like(seg_a) * 0.1 for label in range(n_classes)],
+                [(seg_a == label) + torch.rand_like(seg_a) * self.config.label_noise_level for label in range(n_classes)],
                 dim=1
             )
             seg_a /= torch.linalg.norm(seg_a, dim=1, keepdim=True, ord=1)
@@ -63,7 +63,7 @@ class UNIT(DomainAdaptationTrainerBasePA):
                                      p=list(self.config.data.class_prevalences.values()))
             seg_b = torch.from_numpy(seg_b).type(torch.float32)
             seg_b = torch.stack(
-                [(seg_b == label) + torch.rand_like(seg_b) * 0.1 for label in range(n_classes)],
+                [(seg_b == label) + torch.rand_like(seg_b) * self.config.label_noise_level for label in range(n_classes)],
                 dim=1
             )
             seg_b /= torch.linalg.norm(seg_b, dim=1, keepdim=True, ord=1)
@@ -167,7 +167,7 @@ class UNIT(DomainAdaptationTrainerBasePA):
         if isinstance(image, tuple):
             seg = image[1]
             seg = torch.stack(
-                [(seg == label) + torch.rand_like(seg) * 0.1 for label in range(n_classes)],
+                [(seg == label) + torch.rand_like(seg) * self.config.label_noise_level for label in range(n_classes)],
                 dim=1
             )
             seg /= torch.linalg.norm(seg, dim=1, keepdim=True, ord=1)
@@ -181,7 +181,7 @@ class UNIT(DomainAdaptationTrainerBasePA):
                                    p=list(self.config.data.class_prevalences.values()))
             seg = torch.from_numpy(seg).type(torch.float32)
             seg = torch.stack(
-                [(seg == label) + torch.rand_like(seg) * 0.1 for label in range(n_classes)],
+                [(seg == label) + torch.rand_like(seg) * self.config.label_noise_level for label in range(n_classes)],
                 dim=1
             )
 
@@ -204,7 +204,7 @@ class UNIT(DomainAdaptationTrainerBasePA):
 
             seg_a = images_a[1]
             seg_a = torch.stack(
-                [(seg_a == label) + torch.rand_like(seg_a) * 0.1 for label in range(n_classes)],
+                [(seg_a == label) + torch.rand_like(seg_a) * self.config.label_noise_level for label in range(n_classes)],
                 dim=1
             )
             seg_a /= torch.linalg.norm(seg_a, dim=1, keepdim=True, ord=1)
@@ -214,7 +214,7 @@ class UNIT(DomainAdaptationTrainerBasePA):
                                      p=list(self.config.data.class_prevalences.values()))
             seg_b = torch.from_numpy(seg_b).type(torch.float32)
             seg_b = torch.stack(
-                [(seg_b == label) + torch.rand_like(seg_b) * 0.1 for label in range(n_classes)],
+                [(seg_b == label) + torch.rand_like(seg_b) * self.config.label_noise_level for label in range(n_classes)],
                 dim=1
             )
             seg_b /= torch.linalg.norm(seg_b, dim=1, keepdim=True, ord=1)
