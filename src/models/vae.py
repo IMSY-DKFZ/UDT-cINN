@@ -15,21 +15,27 @@ class VariationalAutoEncoder(nn.Module):
         pad_type = config['pad_type']
         dimension_reduction = config['reduce_dim']
 
+        if "conditional_input_dim" in config:
+            output_dim = input_dim
+            input_dim = config.conditional_input_dim
+        else:
+            output_dim = input_dim
+
         # content encoder
         self.enc = Encoder(n_downsample, n_res, input_dim, dim, normalization_type='instance_norm',
                            activation_type=activ, padding_type=pad_type, dimensionality_reduction=dimension_reduction)
-        self.dec = Decoder(n_downsample, n_res, self.enc.output_dim, input_dim, normalization_type='instance_norm',
+        self.dec = Decoder(n_downsample, n_res, self.enc.output_dim, output_dim, normalization_type='instance_norm',
                            activation_type=activ, padding_type=pad_type, dimensionality_reduction=dimension_reduction)
 
     def forward(self, images):
         # This is a reduced VAE implementation where we assume the outputs are multivariate Gaussian distribution with mean = hiddens and std_dev = all ones.
-        hiddens = self.encode(images)
+        hiddens, _ = self.encode(images)
         if self.training == True:
             noise = Variable(torch.randn(hiddens.size()).cuda(hiddens.data.get_device()))
             images_recon = self.decode(hiddens + noise)
         else:
             images_recon = self.decode(hiddens)
-        return images_recon, hiddens
+        return images_recon
 
     def encode(self, images):
         hiddens = self.enc(images)

@@ -1,18 +1,14 @@
-import FrEIA.framework as Ff
-import FrEIA.modules as Fm
 from omegaconf import DictConfig
 from src.trainers import DomainAdaptationTrainerBasePA
 import torch
 from src.models.discriminator import MultiScaleDiscriminator
 from src.models.vae import VariationalAutoEncoder
-from src.models.multiscale_invertible_blocks import append_multi_scale_inn_blocks
-from src.models.inn_subnets import subnet_conv, weight_init
-from src.utils.dimensionality_calculations import calculate_downscale_dimensionality
+from src.models.inn_subnets import weight_init
 import matplotlib.pyplot as plt
 import os
 
 
-class UNIT(DomainAdaptationTrainerBasePA):
+class CycleGANTrainer(DomainAdaptationTrainerBasePA):
     def __init__(self, experiment_config: DictConfig):
         super().__init__(experiment_config=experiment_config)
 

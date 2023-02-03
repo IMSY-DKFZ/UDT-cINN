@@ -50,7 +50,10 @@ class DAInnBase(DomainAdaptationTrainerBasePA, ABC):
         z_a, jac_a = self.forward(images_a, mode="a")
         z_b, jac_b = self.forward(images_b, mode="b")
 
-        ml_loss = self.maximum_likelihood_loss(z_a=z_a, jac_a=jac_a, z_b=z_b, jac_b=jac_b)
+        ml_loss = self.maximum_likelihood_loss(z_a=z_a[0] if isinstance(z_a, tuple) else z_a,
+                                               jac_a=jac_a,
+                                               z_b=z_b[0] if isinstance(z_b, tuple) else z_b,
+                                               jac_b=jac_b)
         batch_dictionary["ml_loss"] = ml_loss
 
         return batch_dictionary, z_a, jac_a, z_b, jac_b
@@ -99,8 +102,9 @@ class DAInnBase(DomainAdaptationTrainerBasePA, ABC):
         return [inn_optimizer], [{"scheduler": scheduler, "monitor": "loss_step"}]
 
     def gan_inn_training_step(self, batch, optimizer_idx):
+
         images_a, images_b = self.get_images(batch)
-        if images_a.size()[0] != self.config.batch_size:
+        if images_b.size()[0] != self.config.batch_size:
             print("Skipped batch because of uneven data_sizes")
             return None
 
@@ -108,28 +112,23 @@ class DAInnBase(DomainAdaptationTrainerBasePA, ABC):
             z_a, jac_a = self.forward(images_a, mode="a")
             z_b, jac_b = self.forward(images_b, mode="b")
 
-            ml_loss = self.maximum_likelihood_loss(z_a=z_a, jac_a=jac_a, z_b=z_b, jac_b=jac_b)
+            ml_loss = self.maximum_likelihood_loss(z_a=z_a[0] if isinstance(z_a, tuple) else z_a,
+                                                   jac_a=jac_a,
+                                                   z_b=z_b[0] if isinstance(z_b, tuple) else z_b,
+                                                   jac_b=jac_b)
             ml_loss *= self.config.ml_weight
             batch_dictionary = {"ml_loss": ml_loss}
 
             images_ab, _ = self.forward(z_a, mode="b", rev=True, jac=False)
             images_ba, _ = self.forward(z_b, mode="a", rev=True, jac=False)
 
-            gen_a_loss = self.discriminator_a.calc_gen_loss(images_ba)
-            gen_b_loss = self.discriminator_b.calc_gen_loss(images_ab)
+            gen_a_loss = self.discriminator_a.calc_gen_loss(images_ba[0] if isinstance(images_ba, tuple) else images_ba)
+            gen_b_loss = self.discriminator_b.calc_gen_loss(images_ab[0] if isinstance(images_ab, tuple) else images_ab)
 
             gen_loss = gen_a_loss + gen_b_loss
 
             gen_loss *= self.config.gan_weight
             batch_dictionary["gen_loss"] = gen_loss
-
-            if self.config.spectral_consistency:
-                spectral_consistency_loss = self.spectral_consistency_loss(images_a,
-                                                                           images_b,
-                                                                           images_ab,
-                                                                           images_ba)
-
-                batch_dictionary["sc_loss"] = spectral_consistency_loss * self.config.sc_weight
 
         elif optimizer_idx == 1:
             z_a, jac_a = self.forward(images_a, mode="a")
@@ -138,8 +137,13 @@ class DAInnBase(DomainAdaptationTrainerBasePA, ABC):
             images_ab, _ = self.forward(z_a, mode="b", rev=True, jac=False)
             images_ba, _ = self.forward(z_b, mode="a", rev=True, jac=False)
 
-            dis_a_loss = self.discriminator_a.calc_dis_loss(images_ba.detach(), images_a)
-            dis_b_loss = self.discriminator_b.calc_dis_loss(images_ab.detach(), images_b)
+            dis_a_loss = self.discriminator_a.calc_dis_loss(
+                images_ba[0].detach() if isinstance(images_ba, tuple) else images_ba.detach(),
+                images_a[0] if isinstance(images_a, tuple) else images_a)
+
+            dis_b_loss = self.discriminator_b.calc_dis_loss(
+                images_ab[0].detach() if isinstance(images_ab, tuple) else images_ab.detach(),
+                images_b[0] if isinstance(images_b, tuple) else images_b)
 
             dis_loss = dis_a_loss + dis_b_loss
             dis_loss *= self.config.gan_weight
@@ -155,15 +159,11 @@ class DAInnBase(DomainAdaptationTrainerBasePA, ABC):
 
     def inn_training_step(self, batch):
         images_a, images_b = self.get_images(batch)
-        if images_a.size()[0] != self.config.batch_size:
+        if images_b.size()[0] != self.config.batch_size:
             print("Skipped batch because of uneven data_sizes")
             return None
 
         batch_dictionary, z_a, jac_a, z_b, jac_b = self.maximum_likelihood_training(images_a, images_b)
-
-        if self.config.spectral_consistency:
-            batch_dictionary, images_ab, images_ba = self.spectral_consistency_training(
-                images_a, images_b, z_a, z_b, batch_dictionary=batch_dictionary)
 
         batch_dictionary = self.aggregate_total_loss(losses_dict=batch_dictionary)
         self.log_losses(losses_dict=batch_dictionary)
@@ -179,14 +179,14 @@ class DAInnBase(DomainAdaptationTrainerBasePA, ABC):
         images_aba, _ = self.forward(self.forward(images_ab, mode="b")[0], mode="a", rev=True)
         images_ba, _ = self.forward(z_b, mode="a", rev=True)
         images_bab, _ = self.forward(self.forward(images_ba, mode="a")[0], mode="b", rev=True)
-        images_a = images_a.cpu().numpy()
-        images_b = images_b.cpu().numpy()
-        images_ab = images_ab.cpu().numpy()
-        images_ba = images_ba.cpu().numpy()
-        images_bab = images_bab.cpu().numpy()
-        images_aba = images_aba.cpu().numpy()
-        z_a = z_a.cpu().numpy()
-        z_b = z_b.cpu().numpy()
+        images_a = images_a[0].cpu().numpy() if isinstance(images_a, tuple) else images_a.cpu().numpy()
+        images_b = images_b[0].cpu().numpy() if isinstance(images_b, tuple) else images_b.cpu().numpy()
+        images_ab = images_ab[0].cpu().numpy() if isinstance(images_ab, tuple) else images_ab.cpu().numpy()
+        images_ba = images_ba[0].cpu().numpy() if isinstance(images_ba, tuple) else images_ba.cpu().numpy()
+        images_bab = images_bab[0].cpu().numpy() if isinstance(images_bab, tuple) else images_bab.cpu().numpy()
+        images_aba = images_aba[0].cpu().numpy() if isinstance(images_aba, tuple) else images_aba.cpu().numpy()
+        z_a = z_a[0].cpu().numpy() if isinstance(z_a, tuple) else z_a.cpu().numpy()
+        z_b = z_b[0].cpu().numpy() if isinstance(z_b, tuple) else z_b.cpu().numpy()
         z_a_flat = z_a.flatten()
         z_b_flat = z_b.flatten()
         mean_z_a, std_z_a = norm.fit(z_a_flat)

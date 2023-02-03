@@ -9,6 +9,7 @@ from src.trainers.inn_trainer import DomainAdaptationInn
 from src.trainers.gan_conditional_inn_trainer import GanCondinitionalDomainAdaptationINN
 from src.trainers.gan_conditional_inn_trainer_hsi import GanCondinitionalDomainAdaptationINNHSI
 from src.trainers.waic_trainer import WAICTrainer
+from src.trainers.cycle_gan_trainer import CycleGANTrainer
 
 
 def get_model(experiment_name: str):
@@ -19,6 +20,7 @@ def get_model(experiment_name: str):
         "gan_cinn": GanCondinitionalDomainAdaptationINN,
         "gan_cinn_hsi": GanCondinitionalDomainAdaptationINNHSI,
         "unit": UNIT,
+        "cycle_gan": CycleGANTrainer,
         "waic": WAICTrainer,
     }
 

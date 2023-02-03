@@ -1,4 +1,4 @@
-experiment_name: unit
+experiment_name: cycle_gan
 
 epochs: 1000
 seed: 42
@@ -27,15 +27,16 @@ recon_kl_cyc_w: 0.05          # weight of KL loss for cycle consistency
 vgg_w: 0                      # weight of domain-invariant perceptual loss
 recon_criterion: mse
 normalization: min_max
+condition: none
 
 # model options
 gen:
   dim: 64                     # number of filters in the bottommost layer
   activ: relu                 # activation function [relu/lrelu/prelu/selu/tanh]
-  n_downsample: 3             # number of downsampling layers in content encoder
-  n_res: 2                    # number of residual blocks in content encoder/decoder
+  n_downsample: 2             # number of downsampling layers in content encoder
+  n_res: 4                    # number of residual blocks in content encoder/decoder
   pad_type: reflect           # padding type [zero/reflect]
-  sampling_method: up_down    # [up_down ((bi)linear up-/downsampling), conv ((transpose-) convolutional, pooling]
+  reduce_dim: False
 dis:
   dim: 64                     # number of filters in the bottommost layer
   normalization: none                  # normalization layer [none/bn/in/ln]
@@ -52,5 +53,5 @@ data:
   data_set_name: real_sim     # real_sim, sim or mnist_usps
   data_dir_a: test_dir_a
   data_dir_b: test_dir_b
-  used_channels: 0          # int as index of list [700, 855, 10] or list of int as indices, e.g. [0, 3, 6, 15]
-  log: True                 # indicate if data have been taken logarithmic
+  used_channels: 16          # int as index of list [700, 855, 10] or list of int as indices, e.g. [0, 3, 6, 15]
+  log: False                 # indicate if data have been taken logarithmic
