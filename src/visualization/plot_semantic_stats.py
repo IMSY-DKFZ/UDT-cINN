@@ -1,15 +1,13 @@
 import click
 import json
 from htc import DataPath, LabelMapping
-from htc.tivita.DataPathMultiorgan import DataPathMultiorgan
 import pandas as pd
-import seaborn as sns
-from typing import *
 from tqdm import tqdm
 import numpy as np
 import plotly.express as px
 
 from src import settings
+from src.data.make_knn_dataset import split_dataset
 
 
 def get_organ_labels():
@@ -23,38 +21,42 @@ def get_dataset_iterator():
     return iterator
 
 
-def split_dataset(iterator):
-    paths: List[DataPathMultiorgan] = list(iterator)
-    with open("../data/semantic_data_splits.json", "rb") as handle:
-        splits = json.load(handle)
-    for p in splits['train']:
-        assert p not in splits['test'], "found ID of subject in both train and test sets"
-    paths_splits = {"train": [p for p in paths if p.subject_name in splits["train"]],
-                    "test": [p for p in paths if p.subject_name in splits["test"]],
-                    "train_synthetic": [p for p in paths if p.subject_name in splits["train_synthetic"]]}
-    return paths_splits
-
-
 def plot_organ_statistics():
     dataset_iterator = get_dataset_iterator()
     labels = get_organ_labels()
     splits = split_dataset(iterator=dataset_iterator)
-    results = {'organ': [], 'subject': [], 'split': []}
+    results = {'organ': [], 'subject': [], 'split': [], 'spectra_count': [], 'name': []}
     for k, paths in splits.items():
         mapping = LabelMapping.from_path(paths[0])
-        for p in tqdm(paths):
+        for p in tqdm(paths, desc=k):
             seg = p.read_segmentation()
-            organs = [mapping.index_to_name(i) for i in np.unique(seg)]
-            organs = [o for o in organs if o in labels['organ_labels']]
+            organ_id = [i for i in np.unique(seg) if mapping.index_to_name(i) in labels["organ_labels"]]
+            organs = [mapping.index_to_name(i) for i in organ_id]
+            spectra_count = [(seg == i).sum() for i in organ_id]
             results['organ'] += organs
+            results['spectra_count'] += spectra_count
             results['subject'] += [p.subject_name for _ in organs]
             results['split'] += [k for _ in organs]
+            results['name'] += [p.image_name() for _ in organs]
     results = pd.DataFrame(results)
-    results_count = results.value_counts().reset_index().rename({0: 'count'}, axis=1)
-    sns.set_context('talk')
-    fig = px.bar(data_frame=results_count, x='split', y='count', color='organ', barmode='group', hover_data=['subject'])
-    fig.update_layout(font_size=16, font_family='Whitney Book')
+    results_count = results.groupby(['organ', 'subject', 'split', 'name'], as_index=False).sum()
+    results_count['spectra_trimmed'] = [min(i, 5000) for i in results_count.spectra_count]
+    fig = px.bar(data_frame=results_count,
+                 x='split',
+                 y='spectra_trimmed',
+                 color='organ',
+                 barmode='group',
+                 hover_data=['subject'],
+                 category_orders=dict(split=[
+                     "train", "train_synthetic",
+                     "val", "val_synthetic",
+                     "test", "test_synthetic"
+                 ])
+                 )
+    fig.update_layout(font_size=16, font_family='Whitney Book', margin=dict(l=20, r=20, t=20, b=20))
     fig.write_html(settings.figures_dir / 'semantic_data_splits.html')
+    fig.write_image(settings.figures_dir / 'semantic_data_splits.pdf')
+    results_count.to_csv(settings.figures_dir / 'semantic_data_splits.csv')
 
 
 @click.command()

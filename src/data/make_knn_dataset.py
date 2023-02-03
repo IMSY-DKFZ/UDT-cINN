@@ -2,6 +2,7 @@ import click
 import numpy as np
 import cuml
 from htc import DataPath, LabelMapping
+from pathlib import Path
 from htc.tivita.DataPathMultiorgan import DataPathMultiorgan
 from typing import *
 import json
@@ -11,8 +12,7 @@ from src import settings
 from src.data.multi_layer_loader import SimulationDataLoader
 
 
-import _locale
-_locale._getdefaultlocale = (lambda *args: ['en_US', 'utf8'])
+here = Path(__file__).parent
 
 
 def fit_knn(x: np.ndarray, **kwargs):
@@ -28,13 +28,19 @@ def get_dataset_iterator():
 
 def split_dataset(iterator):
     paths: List[DataPathMultiorgan] = list(iterator)
-    with open("./semantic_data_splits.json", "rb") as handle:
+    with open(str(here / "semantic_data_splits.json"), "rb") as handle:
         splits = json.load(handle)
     for p in splits['train']:
         assert p not in splits['test'], "found ID of subject in both train and test sets"
+    for p in splits['val']:
+        assert p not in splits['test'], "found ID of subject in both val and test sets"
     paths_splits = {"train": [p for p in paths if p.subject_name in splits["train"]],
+                    "val": [p for p in paths if p.subject_name in splits["val"]],
                     "test": [p for p in paths if p.subject_name in splits["test"]],
-                    "train_synthetic": [p for p in paths if p.subject_name in splits["train_synthetic"]]}
+                    "train_synthetic": [p for p in paths if p.subject_name in splits["train_synthetic"]],
+                    "val_synthetic": [p for p in paths if p.subject_name in splits["val_synthetic"]],
+                    "test_synthetic": [p for p in paths if p.subject_name in splits["test_synthetic"]],
+                    }
     return paths_splits
 
 
@@ -73,50 +79,75 @@ def get_nearest_neighbors(im, models):
 
 
 def get_organ_labels():
-    with open('./semantic_organ_labels.json', 'rb') as handle:
+    with open(str(here / 'semantic_organ_labels.json'), 'rb') as handle:
         labels = json.load(handle)
     return labels
 
 
-def generate_dataset(nr_neighbours: int):
+def generate_dataset(nr_neighbours: int, nr_pixels: int):
     dataset_iterator = get_dataset_iterator()
     labels = get_organ_labels()
     splits = split_dataset(iterator=dataset_iterator)
     # get fitted KNN models
     models = get_knn_models(nr_neighbours=nr_neighbours)
     # iterate over data splits
+    seg_folder = settings.intermediates_dir / 'semantic' / 'segmentation'
+    seg_folder.mkdir(exist_ok=True)
     for k, paths in splits.items():
-        mapping = LabelMapping.from_path(paths[0])
         for p in tqdm(paths):
+            mapping = LabelMapping.from_path(p)
+            with open(str(settings.intermediates_dir / 'semantic' / 'mapping.json'), 'w') as handle:
+                json.dump(mapping.mapping_index_name, handle)
             im = p.read_cube()
             seg = p.read_segmentation()
-            non_organ_indexes = [i for i in np.unique(seg) if mapping.index_to_name(i) not in labels['organ_labels']]
-            if non_organ_indexes:
-                mask = np.any(np.array([seg == i for i in non_organ_indexes]), axis=0)
+            organ_indexes = [i for i in np.unique(seg) if mapping.index_to_name(i) in labels['organ_labels']]
+            if organ_indexes:
+                mask = np.zeros_like(seg)
+                for i in np.unique(seg):
+                    if i not in organ_indexes:
+                        continue
+                    organ_location = np.where(seg == i)
+                    nr_organ_pixels = organ_location[0].size
+                    if not organ_location:
+                        continue
+                    location_index = np.arange(organ_location[0].size)
+                    location_sample = np.random.choice(location_index, min(nr_organ_pixels, nr_pixels), replace=False)
+                    organ_location_sampled = (organ_location[0][location_sample], organ_location[1][location_sample])
+                    mask[organ_location_sampled] = 1
+                # mask = np.any(np.array([seg == i for i in organ_indexes]), axis=0)
             else:
-                mask = np.zeros_like(seg).astype(bool)
-            mask = np.repeat(mask[..., np.newaxis], im.shape[-1], axis=2)
-            if k in ["train", "test"]:
+                continue
+            mask = mask.astype(bool)
+            seg = seg[mask]
+            assert seg.size <= nr_pixels * len(organ_indexes)  # organs can have less than nr_pixels
+            np.save(file=str(seg_folder / f'{p.image_name()}.npy'), arr=seg)
+            if k in ["train", "test", "val"]:
                 results_folder = settings.intermediates_dir / 'semantic' / k
                 results_folder.mkdir(exist_ok=True)
-                im_masked = np.ma.array(im, mask=mask)
-                im_masked.dump(file=results_folder / f"{p.image_name()}.npy")
-            if k == "train_synthetic":
+                data = im[mask]
+                assert data.shape[-1] == 100
+                ind = np.array(np.where(mask))
+                np.save(file=results_folder / f"{p.image_name()}.npy", arr=data)
+                np.save(file=results_folder / f"{p.image_name()}_ind.npy", arr=ind)
+            if k in ["train_synthetic", "val_synthetic", "test_synthetic"]:
                 neighbours = get_nearest_neighbors(im=im, models=models)
                 for name, nn_images in neighbours.items():
                     results_folder = settings.intermediates_dir / 'semantic' / f'{k}_{name}'
                     results_folder.mkdir(exist_ok=True)
                     for i, nn_array in nn_images.items():
-                        nn_array_masked = np.ma.array(nn_array, mask=mask)
-                        nn_array_masked.dump(results_folder / f"{p.image_name()}_KNN_{i}.npy")
+                        data = nn_array[mask]
+                        ind = np.array(np.where(mask))
+                        np.save(file=results_folder / f"{p.image_name()}_KNN_{i}.npy", arr=data)
+                        np.save(file=results_folder / f"{p.image_name()}_KNN_{i}_ind.npy", arr=ind)
 
 
 @click.command()
 @click.option('--knn', type=bool, help="generate dataset using KNN")
-@click.option('--nr_neighbours', default=9, help="number of nearest neighbors")
-def main(knn: bool, nr_neighbours: int):
+@click.option('--nr_neighbours', default=1, help="number of nearest neighbors")
+@click.option('--nr_pixels', default=5000, help="set number of sampled pixels per ")
+def main(knn: bool, nr_neighbours: int, nr_pixels: int):
     if knn:
-        generate_dataset(nr_neighbours=nr_neighbours)
+        generate_dataset(nr_neighbours=nr_neighbours, nr_pixels=nr_pixels)
 
 
 if __name__ == '__main__':

@@ -309,8 +309,6 @@ def load_imaging_system(filter_response: str, irradiance: str, df_w: Union[None,
     irradiance_values = None
     if irradiance is not None:
         irradiance_values = load_irradiance(irradiance, df_w).values
-        # TODO: Why is this line added?
-        # warnings.warn("irradiance passed through keyword argument, values are passed to 'w' of imaging system")
 
     complete_optical_system_series = None
     if optical_system_parts is not None:
@@ -321,8 +319,6 @@ def load_imaging_system(filter_response: str, irradiance: str, df_w: Union[None,
                 lambda x, y: x*y, optical_system_parts_series)
             complete_optical_system_series = complete_optical_system_series.values
 
-    # use these to build imaging system
-    # TODO: irradiance_values are stored in "white reference" in optical system, but this makes no sense
     imaging_system = ImagingSystem(
         df_w, F_interp.values, w=irradiance_values, q=complete_optical_system_series)
     return imaging_system
@@ -443,14 +439,14 @@ def adapt_to_camera_reflectance(batch: Union[pd.DataFrame, str], filter_response
     imaging_system = load_imaging_system(
         filter_response, irradiance, df_w, optical_system_parts)
     # get simulated camera intensities
-    Cc = transform_reflectance(imaging_system, df.reflectances)
+    Cc = transform_reflectance(imaging_system, df.reflectances.values)
     if len(Cc.shape) == 1:
         Cc = Cc[np.newaxis, ...]
     bands_camera = np.arange(Cc.shape[1])
 
     df = switch_reflectances(df, bands_camera, Cc)
     if "penetration" in df.keys():
-        p_adapted = transform_reflectance(imaging_system, df.penetration)
+        p_adapted = transform_reflectance(imaging_system, df.penetration.values)
         df.drop(df["penetration"].columns, axis=1, level=1, inplace=True)
         for i, nw in enumerate(bands_camera):
             df["penetration", nw] = p_adapted[:, i]
