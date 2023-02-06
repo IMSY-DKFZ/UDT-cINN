@@ -8,8 +8,14 @@ from omegaconf import DictConfig
 class DomainAdaptationDatasetHSI(Dataset):
     def __init__(self, root_a, root_b, experiment_config: DictConfig):
 
+        self.exp_config = experiment_config
+
         self.df_a = pd.read_csv(root_a, header=[0, 1], index_col=None)
         self.df_b = pd.read_csv(root_b, header=[0, 1], index_col=None)
+
+        if self.exp_config.shuffle:
+            self.df_a = self.df_a.sample(frac=1).reset_index(drop=True)
+            self.df_b = self.df_b.sample(frac=1).reset_index(drop=True)
 
         self.refl_a = torch.tensor(self.df_a.reflectances.values)
         self.refl_b = torch.tensor(self.df_b.reflectances.values)
@@ -19,8 +25,6 @@ class DomainAdaptationDatasetHSI(Dataset):
 
         self.bvf_a = torch.tensor(self.df_a.layer0.vhb.values)
         self.bvf_b = torch.tensor(self.df_b.layer0.vhb.values)
-
-        self.exp_config = experiment_config
 
         if experiment_config.normalization not in ["None", "none"]:
             self.normalization = experiment_config.normalization
