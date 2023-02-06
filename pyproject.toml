@@ -30,6 +30,7 @@ matplotlib_scalebar = "*"
 openpyxl = "*"
 torch-fidelity = "*"
 tensorboard = "*"
+seaborn = "*"
 dask = "^2023.1.0"
 
 [tool.poetry.group.docs.dependencies]
