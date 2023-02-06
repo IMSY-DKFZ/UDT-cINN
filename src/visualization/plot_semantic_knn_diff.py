@@ -3,7 +3,6 @@ import numpy as np
 from tqdm import tqdm
 import pandas as pd
 import re
-import json
 import plotly.express as px
 from sklearn.preprocessing import normalize
 import seaborn as sns
@@ -12,15 +11,8 @@ import matplotlib.pyplot as plt
 from src import settings
 
 
-def load_mapping():
-    mapping_file = settings.intermediates_dir / 'semantic' / 'mapping.json'
-    with open(mapping_file, 'rb') as handle:
-        content = json.load(handle)
-    return content
-
-
 def load_data(splits: list, norm: bool = True):
-    mapping = load_mapping()
+    mapping = settings.mapping
     data = {s: [] for s in splits}
     for split in splits:
         folder = settings.intermediates_dir / 'semantic' / split
@@ -130,8 +122,8 @@ def plot_knn_difference():
 
 
 @click.command()
-@click.option('--diff', type=bool, help="plot difference between real data and KNN simulations")
-@click.option('--spectra', type=bool, help="plot spectra of the semantic dataset")
+@click.option('--diff', is_flag=True, help="plot difference between real data and KNN simulations")
+@click.option('--spectra', is_flag=True, help="plot spectra of the semantic dataset")
 def main(diff: bool, spectra: bool):
     if diff:
         plot_knn_difference()

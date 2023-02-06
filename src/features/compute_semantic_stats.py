@@ -2,8 +2,10 @@ import click
 import numpy as np
 from tqdm import tqdm
 import json
+from omegaconf import DictConfig
 
 from src import settings
+from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
 
 
 def compute_running_stats(data: list):
@@ -30,38 +32,44 @@ def compute_running_stats(data: list):
     return dict(mean=mean, variance=variance, n=n, std=std)
 
 
-def compute_stats(data: list):
-    x = np.concatenate(data).flatten()
-    return dict(mean=float(x.mean()), std=float(x.std()), n=int(x.size), variance=float(x.std()**2))
+def _compute_stats(data: np.ndarray):
+    x = data.flatten()
+    return dict(mean=float(x.mean()), std=float(x.std()), n=int(x.size), variance=float(x.std() ** 2))
 
 
-def load_data():
-    splits = ['train',
-              'val',
-              'test',
-              'train_synthetic_adapted',
-              'train_synthetic_sampled',
-              'val_synthetic_adapted',
-              'val_synthetic_sampled',
-              'test_synthetic_adapted',
-              'test_synthetic_sampled'
-              ]
+def get_stats():
+    real_cfg = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, target="real", normalization="standardize"))
+    synthetic_cfg = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, target="synthetic", normalization="standardize"))
+    synthetic_adapted_cfg = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, target="synthetic_adapted", normalization="standardize"))
+    real_dl = SemanticDataModule(experiment_config=real_cfg)
+    real_dl.setup(stage='train')
+    synthetic_dl = SemanticDataModule(experiment_config=synthetic_cfg)
+    synthetic_dl.setup(stage='train')
+    synthetic_adapted_dl = SemanticDataModule(experiment_config=synthetic_adapted_cfg)
+    synthetic_adapted_dl.setup(stage='train')
+    splits = {
+        'train': real_dl.train_dataloader().dataset.data,
+        'val': real_dl.val_dataloader().dataset.data,
+        'train_synthetic_sampled': synthetic_dl.train_dataloader().dataset.data,
+        'val_synthetic_sampled': synthetic_dl.val_dataloader().dataset.data,
+        'train_synthetic_adapted': synthetic_adapted_dl.train_dataloader().dataset.data,
+        'val_synthetic_adapted': synthetic_adapted_dl.val_dataloader().dataset.data,
+    }
+    with EnableTestData(real_dl):
+        splits['test'] = real_dl.test_dataloader().dataset.data
+    with EnableTestData(synthetic_dl):
+        splits['test_synthetic_sampled'] = synthetic_dl.test_dataloader().dataset.data
+    with EnableTestData(synthetic_adapted_dl):
+        splits['test_synthetic_adapted'] = synthetic_adapted_dl.test_dataloader().dataset.data
     results = {}
-    for split in splits:
-        folder = settings.intermediates_dir / 'semantic' / split
-        files = folder.glob('*.npy')
-        files = [f for f in files if '_ind' not in f.name]
-        mmaps = []
-        for f in tqdm(files, desc=f"loading mmaps {split}"):
-            data = np.load(f, allow_pickle=True, mmap_mode='r')
-            mmaps.append(data)
-        stats = compute_stats(mmaps)
+    for split, data in splits.items():
+        stats = _compute_stats(data.numpy())
         results[split] = stats
     return results
 
 
 def build_stats():
-    stats = load_data()
+    stats = get_stats()
     results_file = settings.intermediates_dir / 'semantic' / 'data_stats.json'
     with open(str(results_file), 'w') as handle:
         json.dump(stats, handle)

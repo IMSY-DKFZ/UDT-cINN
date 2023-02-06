@@ -109,11 +109,14 @@ class TestSemanticDataModule(unittest.TestCase):
     def test_dl_loading(self):
         loaders = [self.dl.val_dataloader(), self.dl.train_dataloader()]
         for loader in loaders:
+            ignore_classes = loader.dataset.ignore_classes
+            ignore_indices = [int(i) for i, k in settings.mapping.items() if k in ignore_classes]
             for data in tqdm(loader):
                 self.assertTrue(isinstance(data.get('image'), torch.Tensor))
                 self.assertTrue(len(data.get('image').size()) == 2)
                 self.assertTrue(isinstance(data.get('seg'), torch.Tensor))
                 self.assertTrue(isinstance(data.get('mapping'), dict))
+                self.assertFalse(np.any([i in data.get('seg') for i in ignore_indices]))
 
     @unittest.skipIf(False, "loading all data is slow, this test should be run manually")
     def test_dl_loading_synthetic(self):

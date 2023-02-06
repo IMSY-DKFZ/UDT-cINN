@@ -27,7 +27,7 @@ def plot_organ_statistics():
     splits = split_dataset(iterator=dataset_iterator)
     results = {'organ': [], 'subject': [], 'split': [], 'spectra_count': [], 'name': []}
     for k, paths in splits.items():
-        mapping = LabelMapping.from_path(paths[0])
+        mapping = settings.mapping
         for p in tqdm(paths, desc=k):
             seg = p.read_segmentation()
             organ_id = [i for i in np.unique(seg) if mapping.index_to_name(i) in labels["organ_labels"]]
