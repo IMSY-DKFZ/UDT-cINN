@@ -34,6 +34,9 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
 
     @staticmethod
     def get_spectra(batch) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        expects that domain_a is the simulated data and domain_b is the real data
+        """
         spectra_a = batch["spectra_a"]
         spectra_b = batch["spectra_b"]
         spectra_a, spectra_b = spectra_a.cuda(non_blocking=True), spectra_b.cuda(non_blocking=True)
