@@ -4,7 +4,7 @@ import os
 
 from src.utils.config_io import load_config
 
-test_set_root = "/home/kris/Work/Data/DA_results/miccai/domain_adaptation_results/gan_cinn/2023_01_24_16_16_21"
+test_set_root = "/home/kris/Work/Data/DA_results/gan_cinn/2023_01_23_22_47_44"
 data_set_type = "real_images"
 
 config = load_config(os.path.join(test_set_root, "version_0", "hparams.yaml"))
@@ -35,11 +35,12 @@ for file_idx, file in enumerate(file_list):
         os.makedirs(os.path.dirname(save_path))
 
     if data_set_type == "good_simulations":
-        oxygenation = data["oxy"]
+        # oxygenation = data["oxy"]
         np.savez(save_path,
                  reconstruction=recon,
                  segmentation=segmentation,
-                 oxygenation=oxygenation)
+                 # oxygenation=oxygenation,
+                 )
     else:
         np.savez(save_path,
                  reconstruction=recon,

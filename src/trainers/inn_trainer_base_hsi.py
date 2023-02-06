@@ -144,17 +144,13 @@ class DAInnBaseHSI(DomainAdaptationTrainerBaseHSI, ABC):
 
         batch_dictionary, z_a, jac_a, z_b, jac_b = self.maximum_likelihood_training(spectra_a, spectra_b)
 
-        if self.config.spectral_consistency:
-            batch_dictionary, spectra_ab, spectra_ba = self.spectral_consistency_training(
-                spectra_a, spectra_b, z_a, z_b, batch_dictionary=batch_dictionary)
-
         batch_dictionary = self.aggregate_total_loss(losses_dict=batch_dictionary)
         self.log_losses(losses_dict=batch_dictionary)
 
         return batch_dictionary
 
     def validation_step(self, batch, batch_idx):
-        plt.figure(figsize=(20, 5))
+        plt.figure(figsize=(15, 7))
         spectra_a, spectra_b = self.get_spectra(batch)
         z_a, jac_a = self.forward(spectra_a, mode="a")
         spectra_ab, _ = self.forward(z_a, mode="b", rev=True)
@@ -177,18 +173,27 @@ class DAInnBaseHSI(DomainAdaptationTrainerBaseHSI, ABC):
         y_z_a = norm.pdf(x_space, mean_z_a, std_z_a)
         y_z_b = norm.pdf(x_space, mean_z_b, std_z_b)
 
-        plt.subplot(2, 1, 1)
+        minimum, maximum = np.min([spectra_a, spectra_b]), np.max([spectra_a, spectra_b])
+        minimum -= 0.2 * minimum
+        maximum += 0.2 * maximum
+
+        plt.subplot(3, 1, 1)
         plt.title("HSI Spectra")
         plt.plot(spectra_a, color="green", linestyle="solid", label="spectrum domain A")
         plt.plot(spectra_aba, color="green", linestyle="", marker="o", label="cycle reconstructed spectrum A")
-        plt.plot(spectra_ab, color="green", linestyle="dashed", label="spectrum domain AB")
         plt.plot(spectra_b, color="blue", linestyle="solid", label="spectrum domain B")
         plt.plot(spectra_bab, color="blue", linestyle="", marker="o", label="cycle reconstructed spectrum B")
-        plt.plot(spectra_ba, color="blue", linestyle="dashed", label="spectrum domain BA")
-        plt.ylim(-0.5, 0.5)
+        plt.ylim(minimum, maximum)
         plt.legend()
 
-        plt.subplot(2, 1, 2)
+        plt.subplot(3, 1, 2)
+        plt.title("Domain adapted spectra")
+        plt.plot(spectra_ab, color="green", linestyle="dashed", label="spectrum domain AB")
+        plt.plot(spectra_ba, color="blue", linestyle="dashed", label="spectrum domain BA")
+        plt.ylim(minimum, maximum)
+        plt.legend()
+
+        plt.subplot(3, 1, 3)
         plt.hist(z_a, color="green", density=True, bins=50, alpha=0.5, label="spectrum domain A")
         plt.plot(x_space, y_z_a, color="green", label="mean={:1.2f}, std={:1.2f}".format(mean_z_a, std_z_a))
 
