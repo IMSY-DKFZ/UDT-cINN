@@ -11,7 +11,6 @@ from tqdm import tqdm
 from src import settings
 from src.data.multi_layer_loader import SimulationDataLoader
 
-
 here = Path(__file__).parent
 
 
@@ -34,13 +33,14 @@ def split_dataset(iterator):
         assert p not in splits['test'], "found ID of subject in both train and test sets"
     for p in splits['val']:
         assert p not in splits['test'], "found ID of subject in both val and test sets"
-    paths_splits = {"train": [p for p in paths if p.subject_name in splits["train"]],
-                    "val": [p for p in paths if p.subject_name in splits["val"]],
-                    "test": [p for p in paths if p.subject_name in splits["test"]],
-                    "train_synthetic": [p for p in paths if p.subject_name in splits["train_synthetic"]],
-                    "val_synthetic": [p for p in paths if p.subject_name in splits["val_synthetic"]],
-                    "test_synthetic": [p for p in paths if p.subject_name in splits["test_synthetic"]],
-                    }
+    paths_splits = {
+        "train": [p for p in paths if p.subject_name in splits["train"]],
+        "val": [p for p in paths if p.subject_name in splits["val"]],
+        "test": [p for p in paths if p.subject_name in splits["test"]],
+        "train_synthetic": [p for p in paths if p.subject_name in splits["train_synthetic"]],
+        "val_synthetic": [p for p in paths if p.subject_name in splits["val_synthetic"]],
+        "test_synthetic": [p for p in paths if p.subject_name in splits["test_synthetic"]],
+    }
     return paths_splits
 
 
@@ -67,14 +67,12 @@ def get_knn_models(nr_neighbours: int):
 
 
 def get_nearest_neighbors(im, models):
-    im_shape = im.shape
-    im = im.reshape((im_shape[0]*im_shape[1], im_shape[2]))
     results = {}
     for k, item in models.items():
         model = item['model']
         x = item['data']
         idx = model.kneighbors(im, return_distance=False)
-        results[k] = {i: x[idx[:, i]].reshape(im_shape) for i in range(idx.shape[1])}
+        results[k] = {i: x[idx[:, i]] for i in range(idx.shape[1])}
     return results
 
 
@@ -130,19 +128,19 @@ def generate_dataset(nr_neighbours: int, nr_pixels: int):
                 np.save(file=results_folder / f"{p.image_name()}.npy", arr=data)
                 np.save(file=results_folder / f"{p.image_name()}_ind.npy", arr=ind)
             if k in ["train_synthetic", "val_synthetic", "test_synthetic"]:
-                neighbours = get_nearest_neighbors(im=im, models=models)
+                data = im[mask]
+                ind = np.array(np.where(mask))
+                neighbours = get_nearest_neighbors(im=data, models=models)
                 for name, nn_images in neighbours.items():
                     results_folder = settings.intermediates_dir / 'semantic' / f'{k}_{name}'
                     results_folder.mkdir(exist_ok=True)
                     for i, nn_array in nn_images.items():
-                        data = nn_array[mask]
-                        ind = np.array(np.where(mask))
-                        np.save(file=results_folder / f"{p.image_name()}_KNN_{i}.npy", arr=data)
+                        np.save(file=results_folder / f"{p.image_name()}_KNN_{i}.npy", arr=nn_array)
                         np.save(file=results_folder / f"{p.image_name()}_KNN_{i}_ind.npy", arr=ind)
 
 
 @click.command()
-@click.option('--knn', type=bool, help="generate dataset using KNN")
+@click.option('--knn', is_flag=True, help="generate dataset using KNN")
 @click.option('--nr_neighbours', default=1, help="number of nearest neighbors")
 @click.option('--nr_pixels', default=5000, help="set number of sampled pixels per ")
 def main(knn: bool, nr_neighbours: int, nr_pixels: int):

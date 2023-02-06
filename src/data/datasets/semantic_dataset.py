@@ -1,6 +1,3 @@
-import json
-import re
-
 import torch
 from torch.utils.data import Dataset
 import numpy as np
@@ -26,8 +23,20 @@ class SemanticDataset(Dataset):
         seg_file_names = self._strip_names([f.name for f in self.image_list])
         self.seg_list = [self.segmentation_path / f for f in seg_file_names]
         self.data, self.seg_data = self.load_data()
-        with open(str(settings.intermediates_dir / 'semantic' / 'mapping.json'), 'rb') as handle:
-            self.mapping = json.load(handle)
+        self.mapping: dict = settings.mapping
+        self.ignore_classes = ['gallbladder']
+        self.filter_dataset()
+
+    def filter_dataset(self):
+        if self.ignore_classes:
+            assert np.all([o in self.mapping.values() for o in self.ignore_classes])
+            ignored_indices = [int(i) for i, k in self.mapping.items() if k in self.ignore_classes]
+            masks = [(self.seg_data != i).numpy() for i in ignored_indices]
+            if masks:
+                mask = np.any(masks, axis=0)
+                assert mask.shape == self.seg_data.shape
+                self.data = self.data[mask]
+                self.seg_data = self.seg_data[mask]
 
     @staticmethod
     def _strip_names(files: list[str]):

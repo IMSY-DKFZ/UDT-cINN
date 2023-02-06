@@ -1,8 +1,11 @@
+import json
 import os
 from pathlib import Path
 from typing import Union
 from dotenv import load_dotenv
 
+
+here = Path(__file__).parent
 
 def unify_path(path: Union[Path, str]) -> Path:
     """
@@ -36,3 +39,8 @@ figures_dir = unify_path(Path(os.getenv('PATH_MICCAI_23_PROJECT')) / 'figures')
 tivita_cam_filters_file = intermediates_dir / 'optics' / 'artificial_tivita_camera_normal_20nm.csv'
 tivita_irradiance = intermediates_dir / 'optics' / 'tivita_relative_irradiance_2019_04_05.txt'
 tivita_semantic = unify_path(os.getenv('PATH_MICCAI_23_SEMANTIC_DATASET'))
+
+
+# load pre-defined organ mapping
+with open(str(here / 'data/mapping.json'), 'rb') as handle:
+    mapping = json.load(handle)
