@@ -44,3 +44,5 @@ tivita_semantic = unify_path(os.getenv('PATH_MICCAI_23_SEMANTIC_DATASET'))
 # load pre-defined organ mapping
 with open(str(here / 'data/mapping.json'), 'rb') as handle:
     mapping = json.load(handle)
+with open(str(here / 'data/semantic_organ_labels.json'), 'rb') as handle:
+    organ_labels = json.load(handle)['organ_labels']
