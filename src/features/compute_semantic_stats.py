@@ -3,6 +3,7 @@ import numpy as np
 from tqdm import tqdm
 import json
 from omegaconf import DictConfig
+from sklearn.preprocessing import normalize
 
 from src import settings
 from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
@@ -33,34 +34,33 @@ def compute_running_stats(data: list):
 
 
 def _compute_stats(data: np.ndarray):
-    x = data.flatten()
+    x = normalize(data, norm='l2', axis=1)
+    x = x.flatten()
     return dict(mean=float(x.mean()), std=float(x.std()), n=int(x.size), variance=float(x.std() ** 2))
 
 
 def get_stats():
-    real_cfg = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, target="real", normalization="standardize"))
-    synthetic_cfg = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, target="synthetic", normalization="standardize"))
-    synthetic_adapted_cfg = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, target="synthetic_adapted", normalization="standardize"))
-    real_dl = SemanticDataModule(experiment_config=real_cfg)
-    real_dl.setup(stage='train')
-    synthetic_dl = SemanticDataModule(experiment_config=synthetic_cfg)
-    synthetic_dl.setup(stage='train')
-    synthetic_adapted_dl = SemanticDataModule(experiment_config=synthetic_adapted_cfg)
-    synthetic_adapted_dl.setup(stage='train')
+    real_cfg = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, normalization="standardize",
+                               data=dict(mean_a=None, mean_b=None, std=None, std_b=None)))
+    adapted_cfg = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, target="adapted", normalization="standardize",
+                                  data=dict(mean_a=None, mean_b=None, std=None, std_b=None)))
+    dl = SemanticDataModule(experiment_config=real_cfg)
+    dl.setup(stage='train')
+    adapted_dl = SemanticDataModule(experiment_config=adapted_cfg)
+    adapted_dl.setup(stage='train')
     splits = {
-        'train': real_dl.train_dataloader().dataset.data,
-        'val': real_dl.val_dataloader().dataset.data,
-        'train_synthetic_sampled': synthetic_dl.train_dataloader().dataset.data,
-        'val_synthetic_sampled': synthetic_dl.val_dataloader().dataset.data,
-        'train_synthetic_adapted': synthetic_adapted_dl.train_dataloader().dataset.data,
-        'val_synthetic_adapted': synthetic_adapted_dl.val_dataloader().dataset.data,
+        'train': dl.train_dataloader().dataset.data_b,
+        'val': dl.val_dataloader().dataset.data_b,
+        'train_synthetic_sampled': dl.train_dataloader().dataset.data_a,
+        'val_synthetic_sampled': dl.val_dataloader().dataset.data_a,
+        'train_synthetic_adapted': dl.train_dataloader().dataset.data_a,
+        'val_synthetic_adapted': adapted_dl.val_dataloader().dataset.data_a,
     }
-    with EnableTestData(real_dl):
-        splits['test'] = real_dl.test_dataloader().dataset.data
-    with EnableTestData(synthetic_dl):
-        splits['test_synthetic_sampled'] = synthetic_dl.test_dataloader().dataset.data
-    with EnableTestData(synthetic_adapted_dl):
-        splits['test_synthetic_adapted'] = synthetic_adapted_dl.test_dataloader().dataset.data
+    with EnableTestData(dl):
+        splits['test'] = dl.test_dataloader().dataset.data_b
+        splits['test_synthetic_sampled'] = dl.test_dataloader().dataset.data_a
+    with EnableTestData(adapted_dl):
+        splits['test_synthetic_adapted'] = adapted_dl.test_dataloader().dataset.data_a
     results = {}
     for split, data in splits.items():
         stats = _compute_stats(data.numpy())

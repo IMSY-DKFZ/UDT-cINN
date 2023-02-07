@@ -1,13 +1,14 @@
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from omegaconf import DictConfig
+import json
 
 from src.data.datasets.semantic_dataset import SemanticDataset
 from src import settings
 
 
 class SemanticDataModule(pl.LightningDataModule):
-    def __init__(self, experiment_config: DictConfig):
+    def __init__(self, experiment_config: DictConfig, target='sampled'):
         """
         PyTorchLightning data loader. Each data loader feed the data as a dictionary containing the reflectances, the
         labels and a dictionary with mappings from labels (int) -> organ names (str).
@@ -17,8 +18,9 @@ class SemanticDataModule(pl.LightningDataModule):
         By default, the test data set is hidden to avoind data leackage during training. During testing, it can be
         enabled through the context manager `EnableTestData`, and example of this is given below.
 
-        >>> cfg = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, target="real"))
+        >>> cfg = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, normalization="standardize"))
         >>> dm = SemanticDataModule(cfg)
+        >>> dm.setup()
         >>> dl = dm.train_dataloader()
         >>> with EnableTestData(dm):
         >>>     test_dl = dm.test_dataloader()
@@ -35,21 +37,23 @@ class SemanticDataModule(pl.LightningDataModule):
         self.num_workers = experiment_config.num_workers
         self.batch_size = experiment_config.batch_size
         self.train_dataset, self.val_dataset, self.test_dataset = None, None, None
-        self.target = experiment_config.target
-        self._suffix = None
+        self.target = target
+        self.dimensions = 100
+        self.data_stats = self.load_data_stats()
+        self.adjust_experiment_config()
+
+    @staticmethod
+    def load_data_stats():
+        with open(str(settings.intermediates_dir / 'semantic' / 'data_stats.json'), 'rb') as handle:
+            content = json.load(handle)
+        return content
 
     def setup(self, stage: str) -> None:
-        if self.target == 'synthetic':
-            self._suffix = '_synthetic_sampled'
-        elif self.target == 'real':
-            self._suffix = ''
-        elif self.target == 'synthetic_adapted':
-            self._suffix = '_synthetic_adapted'
-        else:
-            raise ValueError(f"target {self.target} unknown")
-        self.train_dataset = SemanticDataset(settings.intermediates_dir / 'semantic' / f'train{self._suffix}',
+        self.train_dataset = SemanticDataset(settings.intermediates_dir / 'semantic' / f'train_synthetic_{self.target}',
+                                             settings.intermediates_dir / 'semantic' / f'train',
                                              exp_config=self.exp_config)
-        self.val_dataset = SemanticDataset(settings.intermediates_dir / 'semantic' / f'val{self._suffix}',
+        self.val_dataset = SemanticDataset(settings.intermediates_dir / 'semantic' / f'val_synthetic_{self.target}',
+                                           settings.intermediates_dir / 'semantic' / f'val',
                                            exp_config=self.exp_config)
 
     def train_dataloader(self) -> DataLoader:
@@ -75,13 +79,21 @@ class SemanticDataModule(pl.LightningDataModule):
     def test_dataloader(self) -> DataLoader:
         raise NotImplementedError
 
+    def adjust_experiment_config(self):
+        self.exp_config.data.dimensions = self.dimensions
+        self.exp_config.data.mean_a = self.data_stats.get(f'train_synthetic_{self.target}').get('mean')
+        self.exp_config.data.mean_b = self.data_stats.get(f'train').get('mean')
+        self.exp_config.data.std_a = self.data_stats.get(f'train_synthetic_{self.target}').get('std')
+        self.exp_config.data.std_b = self.data_stats.get(f'train').get('std')
+
 
 class EnableTestData:
     def __init__(self, dl: SemanticDataModule):
         self.dl = dl
 
     def __enter__(self):
-        self.dl.test_dataset = SemanticDataset(settings.intermediates_dir / 'semantic' / f'test{self.dl._suffix}',
+        self.dl.test_dataset = SemanticDataset(settings.intermediates_dir / 'semantic' / f'test_synthetic_{self.dl.target}',
+                                               settings.intermediates_dir / 'semantic' / f'test',
                                                exp_config=self.dl.exp_config)
 
         def test_data_loader():

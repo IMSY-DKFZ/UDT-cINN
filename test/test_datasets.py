@@ -49,14 +49,18 @@ class TestSemanticDataset(unittest.TestCase):
 
     def test_loading(self):
         config = DictConfig({'data': {'mean': 0.1, 'std': 0.1}, 'normalization': 'standardize'})
-        ds = SemanticDataset(root=settings.intermediates_dir / 'semantic' / 'train',
+        ds = SemanticDataset(root_a=settings.intermediates_dir / 'semantic' / 'train',
+                             root_b=settings.intermediates_dir / 'semantic' / 'train_synthetic_sampled',
                              exp_config=config,
                              noise_aug=True,
                              noise_std=0.3)
         data = ds[0]
-        self.assertTrue(isinstance(data.get('image'), torch.Tensor))
-        self.assertTrue(len(data.get('image').size()) == 1)
-        self.assertTrue(isinstance(data.get('seg'), torch.Tensor))
+        self.assertTrue(isinstance(data.get('spectra_a'), torch.Tensor))
+        self.assertTrue(len(data.get('spectra_a').size()) == 1)
+        self.assertTrue(isinstance(data.get('seg_a'), torch.Tensor))
+        self.assertTrue(isinstance(data.get('spectra_b'), torch.Tensor))
+        self.assertTrue(len(data.get('spectra_b').size()) == 1)
+        self.assertTrue(isinstance(data.get('seg_b'), torch.Tensor))
         self.assertTrue(isinstance(data.get('mapping'), dict))
 
     def test_segmentations(self):
@@ -82,7 +86,7 @@ class TestSemanticDataModule(unittest.TestCase):
                     shuffle=False,
                     num_workers=1,
                     normalization='standardize',
-                    data=dict(mean=0.1, std=0.1),
+                    data=dict(mean_a=None, mean_b=None, std=None, std_b=None),
                     target='real'
                     )
         conf = DictConfig(conf)
@@ -92,17 +96,23 @@ class TestSemanticDataModule(unittest.TestCase):
     def test_train_dl(self):
         train_dl = self.dl.train_dataloader()
         data = next(iter(train_dl))
-        self.assertTrue(isinstance(data.get('image'), torch.Tensor))
-        self.assertTrue(len(data.get('image').size()) == 2)
-        self.assertTrue(isinstance(data.get('seg'), torch.Tensor))
+        self.assertTrue(isinstance(data.get('spectra_a'), torch.Tensor))
+        self.assertTrue(len(data.get('spectra_a').size()) == 2)
+        self.assertTrue(isinstance(data.get('seg_a'), torch.Tensor))
+        self.assertTrue(isinstance(data.get('spectra_b'), torch.Tensor))
+        self.assertTrue(len(data.get('spectra_b').size()) == 2)
+        self.assertTrue(isinstance(data.get('seg_b'), torch.Tensor))
         self.assertTrue(isinstance(data.get('mapping'), dict))
 
     def test_val_dl(self):
         dl = self.dl.val_dataloader()
         data = next(iter(dl))
-        self.assertTrue(isinstance(data.get('image'), torch.Tensor))
-        self.assertTrue(len(data.get('image').size()) == 2)
-        self.assertTrue(isinstance(data.get('seg'), torch.Tensor))
+        self.assertTrue(isinstance(data.get('spectra_a'), torch.Tensor))
+        self.assertTrue(len(data.get('spectra_a').size()) == 2)
+        self.assertTrue(isinstance(data.get('seg_a'), torch.Tensor))
+        self.assertTrue(isinstance(data.get('spectra_b'), torch.Tensor))
+        self.assertTrue(len(data.get('spectra_b').size()) == 2)
+        self.assertTrue(isinstance(data.get('seg_b'), torch.Tensor))
         self.assertTrue(isinstance(data.get('mapping'), dict))
 
     @unittest.skipIf(False, "loading all data is slow, this test should be run manually")
@@ -112,11 +122,15 @@ class TestSemanticDataModule(unittest.TestCase):
             ignore_classes = loader.dataset.ignore_classes
             ignore_indices = [int(i) for i, k in settings.mapping.items() if k in ignore_classes]
             for data in tqdm(loader):
-                self.assertTrue(isinstance(data.get('image'), torch.Tensor))
-                self.assertTrue(len(data.get('image').size()) == 2)
-                self.assertTrue(isinstance(data.get('seg'), torch.Tensor))
+                self.assertTrue(isinstance(data.get('spectra_a'), torch.Tensor))
+                self.assertTrue(len(data.get('spectra_a').size()) == 2)
+                self.assertTrue(isinstance(data.get('seg_a'), torch.Tensor))
+                self.assertFalse(np.any([i in data.get('seg_a') for i in ignore_indices]))
+                self.assertTrue(isinstance(data.get('spectra_b'), torch.Tensor))
+                self.assertTrue(len(data.get('spectra_b').size()) == 2)
+                self.assertTrue(isinstance(data.get('seg_b'), torch.Tensor))
+                self.assertFalse(np.any([i in data.get('seg_b') for i in ignore_indices]))
                 self.assertTrue(isinstance(data.get('mapping'), dict))
-                self.assertFalse(np.any([i in data.get('seg') for i in ignore_indices]))
 
     @unittest.skipIf(False, "loading all data is slow, this test should be run manually")
     def test_dl_loading_synthetic(self):
@@ -133,9 +147,12 @@ class TestSemanticDataModule(unittest.TestCase):
         loaders = [dl.val_dataloader(), dl.train_dataloader()]
         for loader in loaders:
             for data in tqdm(loader):
-                self.assertTrue(isinstance(data.get('image'), torch.Tensor))
-                self.assertTrue(len(data.get('image').size()) == 2)
-                self.assertTrue(isinstance(data.get('seg'), torch.Tensor))
+                self.assertTrue(isinstance(data.get('spectra_a'), torch.Tensor))
+                self.assertTrue(len(data.get('spectra_a').size()) == 2)
+                self.assertTrue(isinstance(data.get('seg_a'), torch.Tensor))
+                self.assertTrue(isinstance(data.get('spectra_b'), torch.Tensor))
+                self.assertTrue(len(data.get('spectra_b').size()) == 2)
+                self.assertTrue(isinstance(data.get('seg_b'), torch.Tensor))
                 self.assertTrue(isinstance(data.get('mapping'), dict))
 
     def test_dl_test_context_manager(self):
@@ -143,9 +160,12 @@ class TestSemanticDataModule(unittest.TestCase):
             loaders = [self.dl.test_dataloader()]
             for loader in loaders:
                 for data in tqdm(loader):
-                    self.assertTrue(isinstance(data.get('image'), torch.Tensor))
-                    self.assertTrue(len(data.get('image').size()) == 2)
-                    self.assertTrue(isinstance(data.get('seg'), torch.Tensor))
+                    self.assertTrue(isinstance(data.get('spectra_a'), torch.Tensor))
+                    self.assertTrue(len(data.get('spectra_a').size()) == 2)
+                    self.assertTrue(isinstance(data.get('seg_a'), torch.Tensor))
+                    self.assertTrue(isinstance(data.get('spectra_b'), torch.Tensor))
+                    self.assertTrue(len(data.get('spectra_b').size()) == 2)
+                    self.assertTrue(isinstance(data.get('seg_b'), torch.Tensor))
                     self.assertTrue(isinstance(data.get('mapping'), dict))
         self.assertTrue(self.dl.test_dataloader is None)
 

@@ -4,13 +4,20 @@ import numpy as np
 from pathlib import Path
 from omegaconf import DictConfig
 import re
+from torch.linalg import norm
 
 from src import settings
 
 
 class SemanticDataset(Dataset):
-    def __init__(self, root: Path, exp_config: DictConfig, noise_aug: bool = False, noise_std: float = 0.3):
-        self.root = root
+    def __init__(self,
+                 root_a: Path,
+                 root_b: Path,
+                 exp_config: DictConfig,
+                 noise_aug: bool = False,
+                 noise_std: float = 0.3):
+        self.root_a = root_a
+        self.root_b = root_b
         if exp_config.normalization not in ["None", "none"]:
             self.normalization = exp_config.normalization
         else:
@@ -18,25 +25,36 @@ class SemanticDataset(Dataset):
         self.noise_aug = noise_aug
         self.noise_std = noise_std
         self.exp_config = exp_config
-        self.image_list = [f for f in sorted(root.glob('*.npy')) if '_ind.npy' not in f.name]
+        self.image_list_a = [f for f in sorted(root_a.glob('*.npy')) if '_ind.npy' not in f.name]
+        self.image_list_b = [f for f in sorted(root_b.glob('*.npy')) if '_ind.npy' not in f.name]
         self.segmentation_path = settings.intermediates_dir / 'semantic' / 'segmentation'
-        seg_file_names = self._strip_names([f.name for f in self.image_list])
-        self.seg_list = [self.segmentation_path / f for f in seg_file_names]
-        self.data, self.seg_data = self.load_data()
+        seg_file_names_a = self._strip_names([f.name for f in self.image_list_a])
+        seg_file_names_b = self._strip_names([f.name for f in self.image_list_b])
+        self.seg_list_a = [self.segmentation_path / f for f in seg_file_names_a]
+        self.seg_list_b = [self.segmentation_path / f for f in seg_file_names_b]
+        self.data_a, self.seg_data_a, self.data_b, self.seg_data_b = self.load_data()
         self.mapping: dict = settings.mapping
         self.ignore_classes = ['gallbladder']
         self.filter_dataset()
+        self.data_a_size = self.data_a.shape[0]
+        self.data_b_size = self.data_b.shape[0]
 
     def filter_dataset(self):
         if self.ignore_classes:
             assert np.all([o in self.mapping.values() for o in self.ignore_classes])
             ignored_indices = [int(i) for i, k in self.mapping.items() if k in self.ignore_classes]
-            masks = [(self.seg_data != i).numpy() for i in ignored_indices]
-            if masks:
-                mask = np.any(masks, axis=0)
-                assert mask.shape == self.seg_data.shape
-                self.data = self.data[mask]
-                self.seg_data = self.seg_data[mask]
+            masks_a = [(self.seg_data_a != i).numpy() for i in ignored_indices]
+            masks_b = [(self.seg_data_b != i).numpy() for i in ignored_indices]
+            if masks_a:
+                mask = np.any(masks_a, axis=0)
+                assert mask.shape == self.seg_data_a.shape
+                self.data_a = self.data_a[mask]
+                self.seg_data_a = self.seg_data_a[mask]
+            if masks_b:
+                mask = np.any(masks_b, axis=0)
+                assert mask.shape == self.seg_data_b.shape
+                self.data_b = self.data_b[mask]
+                self.seg_data_b = self.seg_data_b[mask]
 
     @staticmethod
     def _strip_names(files: list[str]):
@@ -46,23 +64,41 @@ class SemanticDataset(Dataset):
         return files_clean
 
     def load_data(self):
-        maps = [np.load(str(f), allow_pickle=True) for f in self.image_list]
-        seg_maps = [np.load(str(f), allow_pickle=True) for f in self.seg_list]
-        data = torch.tensor(np.concatenate(maps))
-        seg_data = torch.tensor(np.concatenate(seg_maps))
-        return data, seg_data
+        arrays_a = [np.load(str(f), allow_pickle=True) for f in self.image_list_a]
+        arrays_b = [np.load(str(f), allow_pickle=True) for f in self.image_list_b]
+        seg_maps_a = [np.load(str(f), allow_pickle=True) for f in self.seg_list_a]
+        seg_maps_b = [np.load(str(f), allow_pickle=True) for f in self.seg_list_b]
+        data_a = torch.tensor(np.concatenate(arrays_a))
+        data_b = torch.tensor(np.concatenate(arrays_b))
+        seg_data_a = torch.tensor(np.concatenate(seg_maps_a))
+        seg_data_b = torch.tensor(np.concatenate(seg_maps_b))
+        ind = torch.randperm(data_a.shape[0])
+        data_a = data_a[ind, :]
+        seg_data_a = seg_data_a[ind]
+        return data_a, seg_data_a, data_b, seg_data_b
+
+    @staticmethod
+    def normalize(x: torch.Tensor):
+        return x / norm(x, ord=2)
 
     def __getitem__(self, index) -> dict:
-        img = self.data[index, ...]
-        seg = self.seg_data[index]
-        # normalization
+        spectra_a = self.data_a[index % self.data_a_size, ...]
+        spectra_b = self.data_b[index % self.data_b_size, ...]
+        seg_a = self.seg_data_a[index % self.data_a_size]
+        seg_b = self.seg_data_b[index % self.data_b_size]
+        # normalization and noise augmentation
         if self.normalization and self.normalization == "standardize":
-            img = (img - self.exp_config.data["mean"]) / self.exp_config.data["std"]
+            spectra_a = (self.normalize(spectra_a) - self.exp_config.data["mean_a"]) / self.exp_config.data["std_a"]
+            spectra_b = (self.normalize(spectra_b) - self.exp_config.data["mean_b"]) / self.exp_config.data["std_b"]
         if self.noise_aug:
-            img += torch.normal(0.0, self.noise_std, size=img.shape)
-        return {"image": img.type(torch.float32),
-                "seg": seg.type(torch.float32),
-                "mapping": self.mapping}
+            spectra_a += torch.normal(0.0, self.noise_std, size=spectra_a.shape)
+            spectra_b += torch.normal(0.0, self.noise_std, size=spectra_b.shape)
+        return {
+            "spectra_a": spectra_a.type(torch.float32),
+            "spectra_b": spectra_b.type(torch.float32),
+            "seg_a": seg_a.type(torch.float32),
+            "seg_b": seg_b.type(torch.float32),
+            "mapping": self.mapping}
 
     def __len__(self):
-        return self.data.shape[0]
+        return max(self.data_a_size, self.data_b_size)
