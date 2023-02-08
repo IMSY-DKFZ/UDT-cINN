@@ -5,6 +5,7 @@ from pathlib import Path
 from omegaconf import DictConfig
 import re
 from torch.linalg import norm
+from typing import List
 
 from src import settings
 
@@ -57,7 +58,7 @@ class SemanticDataset(Dataset):
                 self.seg_data_b = self.seg_data_b[mask]
 
     @staticmethod
-    def _strip_names(files: list[str]):
+    def _strip_names(files: List[str]):
         patterns = [re.findall('_KNN_\d', f) or '' for f in files]
         patterns = [p[0] if p else '' for p in patterns]
         files_clean = [f.replace(p, '') for f, p in zip(files, patterns)]
