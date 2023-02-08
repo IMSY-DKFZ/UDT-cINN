@@ -49,24 +49,11 @@ class UNIT(DomainAdaptationTrainerBasePA):
         conditioning = False
         if isinstance(images_a, tuple):
             conditioning = True
-            n_classes = self.config.data.n_classes
 
-            seg_a = images_a[1]
-            seg_a = torch.stack(
-                [(seg_a == label) + torch.rand_like(seg_a) * self.config.label_noise_level for label in range(n_classes)],
-                dim=1
-            )
-            seg_a /= torch.linalg.norm(seg_a, dim=1, keepdim=True, ord=1)
+            seg_a = self.get_label_conditions(images_a[1], n_labels=self.config.data.n_classes)
             seg_a = seg_a.cuda()
 
-            seg_b = np.random.choice(range(n_classes), size=images_a[1].size(),
-                                     p=list(self.config.data.class_prevalences.values()))
-            seg_b = torch.from_numpy(seg_b).type(torch.float32)
-            seg_b = torch.stack(
-                [(seg_b == label) + torch.rand_like(seg_b) * self.config.label_noise_level for label in range(n_classes)],
-                dim=1
-            )
-            seg_b /= torch.linalg.norm(seg_b, dim=1, keepdim=True, ord=1)
+            seg_b = self.get_label_conditions(labels=0, n_labels=self.config.data.n_classes, labels_size=images_a[1].size())
             seg_b = seg_b.cuda()
 
         if optimizer_idx == 0:
@@ -163,32 +150,19 @@ class UNIT(DomainAdaptationTrainerBasePA):
         pass
 
     def translate_image(self, image, input_domain="a"):
-        n_classes = self.config.data.n_classes
-        if isinstance(image, tuple):
-            seg = image[1]
-            seg = torch.stack(
-                [(seg == label) + torch.rand_like(seg) * self.config.label_noise_level for label in range(n_classes)],
-                dim=1
-            )
-            seg /= torch.linalg.norm(seg, dim=1, keepdim=True, ord=1)
-            seg = seg.cuda()
-            image = image[0]
+        if self.config.condition == "segmentation":
+            if isinstance(image, tuple):
+                seg = self.get_label_conditions(image[1], n_labels=self.config.data.n_classes)
+                image = image[0]
 
+            else:
+                seg = self.get_label_conditions(labels=0, n_labels=self.config.data.n_classes,
+                                                labels_size=image.size())
+
+            seg = seg.cuda()
+            input_image = torch.cat([image, seg], dim=1)
         else:
-            seg_size = list(image.size())
-            seg_size.pop(1)
-            seg = np.random.choice(range(n_classes), size=seg_size,
-                                   p=list(self.config.data.class_prevalences.values()))
-            seg = torch.from_numpy(seg).type(torch.float32)
-            seg = torch.stack(
-                [(seg == label) + torch.rand_like(seg) * self.config.label_noise_level for label in range(n_classes)],
-                dim=1
-            )
-
-            seg /= torch.linalg.norm(seg, dim=1, keepdim=True, ord=1)
-            seg = seg.cuda()
-
-        input_image = torch.cat([image, seg], dim=1)
+            input_image = image
 
         translated_image = self.forward(input_image, mode=input_domain)
         return translated_image
@@ -200,24 +174,12 @@ class UNIT(DomainAdaptationTrainerBasePA):
         conditioning = False
         if isinstance(images_a, tuple):
             conditioning = True
-            n_classes = self.config.data.n_classes
 
-            seg_a = images_a[1]
-            seg_a = torch.stack(
-                [(seg_a == label) + torch.rand_like(seg_a) * self.config.label_noise_level for label in range(n_classes)],
-                dim=1
-            )
-            seg_a /= torch.linalg.norm(seg_a, dim=1, keepdim=True, ord=1)
+            seg_a = self.get_label_conditions(images_a[1], n_labels=self.config.data.n_classes)
             seg_a = seg_a.cuda()
 
-            seg_b = np.random.choice(range(n_classes), size=images_a[1].size(),
-                                     p=list(self.config.data.class_prevalences.values()))
-            seg_b = torch.from_numpy(seg_b).type(torch.float32)
-            seg_b = torch.stack(
-                [(seg_b == label) + torch.rand_like(seg_b) * self.config.label_noise_level for label in range(n_classes)],
-                dim=1
-            )
-            seg_b /= torch.linalg.norm(seg_b, dim=1, keepdim=True, ord=1)
+            seg_b = self.get_label_conditions(labels=0, n_labels=self.config.data.n_classes,
+                                              labels_size=images_a[1].size())
             seg_b = seg_b.cuda()
 
         latent_mean_a, latent_std_a = self.gen_a.encode(
