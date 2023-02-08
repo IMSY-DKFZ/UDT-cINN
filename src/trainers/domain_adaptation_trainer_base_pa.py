@@ -92,6 +92,29 @@ class DomainAdaptationTrainerBasePA(pl.LightningModule, ABC):
                            "'abs' or 'mse' in config.recon_criterion!")
         return recon_error
 
+    def get_label_conditions(self, labels, n_labels: int, labels_size=None):
+        if isinstance(labels, int) and labels == 0:
+            one_hot_seg_shape = list(labels_size)
+            if len(labels_size) == 4:
+                one_hot_seg_shape.pop(1)
+
+            random_segmentation = np.random.choice(range(n_labels), size=one_hot_seg_shape)
+
+            labels = torch.from_numpy(random_segmentation).type(torch.float32)
+
+        if self.config.label_noise:
+            one_hot_seg = torch.stack(
+                [(labels == label) + torch.rand_like(labels) * self.config.label_noise_level for label in
+                 range(n_labels)],
+                dim=1
+            )
+            one_hot_seg /= torch.linalg.norm(one_hot_seg, dim=1, keepdim=True, ord=1)
+        else:
+            one_hot_seg = torch.stack([(labels == label) for label in range(n_labels)], dim=1)
+
+        return one_hot_seg
+
+
     @abstractmethod
     def forward(self, inp, mode="a", *args, **kwargs):
         """

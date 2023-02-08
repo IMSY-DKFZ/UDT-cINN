@@ -27,7 +27,9 @@ recon_kl_cyc_w: 0.05          # weight of KL loss for cycle consistency
 vgg_w: 0                      # weight of domain-invariant perceptual loss
 recon_criterion: mse
 normalization: min_max
-condition: none
+condition: segmentation
+label_noise: True
+label_noise_level: 0.2
 
 # model options
 gen:

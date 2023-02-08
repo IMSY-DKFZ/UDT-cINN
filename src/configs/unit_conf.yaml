@@ -28,6 +28,7 @@ vgg_w: 0                      # weight of domain-invariant perceptual loss
 recon_criterion: mse
 normalization: standardize
 condition: segmentation
+label_noise: True
 label_noise_level: 0.2
 
 # model options

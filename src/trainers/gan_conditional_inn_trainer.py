@@ -56,25 +56,10 @@ class GanCondinitionalDomainAdaptationINN(DAInnBase):
                 condition[:, 0, :, :] = cond_noise[:, 1, :, :]
 
             if c == 0 and segmentation is not None:
-                n_classes = self.config.data.n_classes
-
-                if isinstance(segmentation, int) and segmentation == 0:
-                    one_hot_seg_shape = list(condition.size())
-                    one_hot_seg_shape.pop(1)
-                    # random_segmentation = np.random.choice(range(n_classes), size=one_hot_seg_shape,
-                    #                                        p=list(self.config.data.class_prevalences.values()))
-                    random_segmentation = np.random.choice(range(n_classes), size=one_hot_seg_shape)
-
-                    segmentation = torch.from_numpy(random_segmentation).type(torch.float32)
-
-                if self.config.label_noise:
-                    one_hot_seg = torch.stack(
-                        [(segmentation == label) + torch.rand_like(segmentation) * self.config.label_noise_level for label in range(n_classes)],
-                        dim=1
-                    )
-                    one_hot_seg /= torch.linalg.norm(one_hot_seg, dim=1, keepdim=True, ord=1)
-                else:
-                    one_hot_seg = torch.stack([(segmentation == label) for label in range(n_classes)], dim=1)
+                one_hot_seg = self.get_label_conditions(segmentation,
+                                                        n_labels=self.config.data.n_classes,
+                                                        labels_size=condition.size()
+                                                        )
 
                 condition = torch.cat((condition, one_hot_seg), dim=1)
 
@@ -82,12 +67,14 @@ class GanCondinitionalDomainAdaptationINN(DAInnBase):
         return conditions
 
     def forward(self, inp, mode="a", *args, **kwargs):
-
-        segmentation = 0
-        if isinstance(inp, tuple):
-            segmentation = inp[1].clone()
-            return_segmentation = inp[1].clone()
-            inp = inp[0]
+        if self.config.condition == "segmentation":
+            segmentation = 0
+            if isinstance(inp, tuple):
+                segmentation = inp[1].clone()
+                return_segmentation = inp[1].clone()
+                inp = inp[0]
+        else:
+            segmentation = None
 
         if mode == "a":
             conditions = self.get_conditions(inp.size()[0], mode="a", segmentation=segmentation)
@@ -98,7 +85,7 @@ class GanCondinitionalDomainAdaptationINN(DAInnBase):
 
         out, jac = self.model(inp, c=conditions, *args, **kwargs)
 
-        if isinstance(segmentation, int) and segmentation == 0:
+        if (isinstance(segmentation, int) and segmentation == 0) or segmentation is None:
             return out, jac
         else:
             return (out, return_segmentation), jac

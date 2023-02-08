@@ -12,6 +12,9 @@ class CycleGANTrainer(DomainAdaptationTrainerBasePA):
     def __init__(self, experiment_config: DictConfig):
         super().__init__(experiment_config=experiment_config)
 
+        if self.config.condition == "segmentation":
+            self.config.gen.conditional_input_dim = self.dimensions[0] + self.config.data.n_classes
+
         self.gen_ab = VariationalAutoEncoder(self.config.gen, self.dimensions[0])
         self.gen_ba = VariationalAutoEncoder(self.config.gen, self.dimensions[0])
 
@@ -35,16 +38,26 @@ class CycleGANTrainer(DomainAdaptationTrainerBasePA):
     def training_step(self, batch, batch_idx, optimizer_idx, *args, **kwargs):
         images_a, images_b = self.get_images(batch)
 
+        conditioning = False
+        if isinstance(images_a, tuple):
+            conditioning = True
+
+            seg_a = self.get_label_conditions(images_a[1], n_labels=self.config.data.n_classes)
+            seg_a = seg_a.cuda()
+
+            seg_b = self.get_label_conditions(labels=0, n_labels=self.config.data.n_classes, labels_size=images_a[1].size())
+            seg_b = seg_b.cuda()
+
         if optimizer_idx == 0:
 
-            images_ab = self.gen_ab(images_a)
-            images_ba = self.gen_ba(images_b)
+            images_ab = self.gen_ab(images_a if not conditioning else torch.cat([images_a[0], seg_a], dim=1))
+            images_ba = self.gen_ba(images_b if not conditioning else torch.cat([images_b, seg_b], dim=1))
 
-            images_aba = self.gen_ba(images_ab)
-            images_bab = self.gen_ab(images_ba)
+            images_aba = self.gen_ba(images_ab if not conditioning else torch.cat([images_ab, seg_a], dim=1))
+            images_bab = self.gen_ab(images_ba if not conditioning else torch.cat([images_ba, seg_a], dim=1))
 
             # cycle consistency loss
-            loss_gen_cyc_x_a = self.recon_criterion(images_aba, images_a)
+            loss_gen_cyc_x_a = self.recon_criterion(images_aba, images_a if not conditioning else images_a[0])
             loss_gen_cyc_x_b = self.recon_criterion(images_bab, images_b)
 
             # GAN loss
@@ -60,10 +73,10 @@ class CycleGANTrainer(DomainAdaptationTrainerBasePA):
                                 }
 
         elif optimizer_idx == 1:
-            images_ab = self.gen_ab(images_a)
-            images_ba = self.gen_ba(images_b)
+            images_ab = self.gen_ab(images_a if not conditioning else torch.cat([images_a[0], seg_a], dim=1))
+            images_ba = self.gen_ba(images_b if not conditioning else torch.cat([images_b, seg_b], dim=1))
 
-            loss_dis_a = self.dis_a.calc_dis_loss(images_ba.detach(), images_a)
+            loss_dis_a = self.dis_a.calc_dis_loss(images_ba.detach(), images_a if not conditioning else images_a[0])
             loss_dis_b = self.dis_b.calc_dis_loss(images_ab.detach(), images_b)
 
             loss_dis_total = self.config['gan_w'] * (loss_dis_a + loss_dis_b)
@@ -105,20 +118,45 @@ class CycleGANTrainer(DomainAdaptationTrainerBasePA):
         pass
 
     def translate_image(self, image, input_domain="a"):
-        translated_image = self.forward(image, mode=input_domain)
+        if self.config.condition == "segmentation":
+            if isinstance(image, tuple):
+                seg = self.get_label_conditions(image[1], n_labels=self.config.data.n_classes)
+                image = image[0]
+
+            else:
+                seg = self.get_label_conditions(labels=0, n_labels=self.config.data.n_classes,
+                                                labels_size=image.size())
+
+            seg = seg.cuda()
+            input_image = torch.cat([image, seg], dim=1)
+        else:
+            input_image = image
+
+        translated_image = self.forward(input_image, mode=input_domain)
         return translated_image
 
     def validation_step(self, batch, batch_idx):
         plt.figure(figsize=(20, 5))
         images_a, images_b = self.get_images(batch)
 
-        images_ab = self.gen_ab(images_a)
-        images_ba = self.gen_ba(images_b)
+        conditioning = False
+        if isinstance(images_a, tuple):
+            conditioning = True
 
-        images_aba = self.gen_ba(images_ab)
-        images_bab = self.gen_ab(images_ba)
+            seg_a = self.get_label_conditions(images_a[1], n_labels=self.config.data.n_classes)
+            seg_a = seg_a.cuda()
 
-        images_a = images_a.cpu().numpy()
+            seg_b = self.get_label_conditions(labels=0, n_labels=self.config.data.n_classes,
+                                              labels_size=images_a[1].size())
+            seg_b = seg_b.cuda()
+
+        images_ab = self.gen_ab(images_a if not conditioning else torch.cat([images_a[0], seg_a], dim=1))
+        images_ba = self.gen_ba(images_b if not conditioning else torch.cat([images_b, seg_b], dim=1))
+
+        images_aba = self.gen_ba(images_ab if not conditioning else torch.cat([images_ab, seg_a], dim=1))
+        images_bab = self.gen_ab(images_ba if not conditioning else torch.cat([images_ba, seg_a], dim=1))
+
+        images_a = images_a.cpu().numpy() if not conditioning else images_a[0].cpu().numpy()
         images_b = images_b.cpu().numpy()
         images_ab = images_ab.cpu().numpy()
         images_ba = images_ba.cpu().numpy()
