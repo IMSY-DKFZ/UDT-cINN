@@ -69,7 +69,7 @@ class SemanticDataModule(pl.LightningDataModule):
     def val_dataloader(self) -> DataLoader:
         dl = DataLoader(self.val_dataset,
                         batch_size=self.batch_size,
-                        shuffle=self.shuffle,
+                        shuffle=False,
                         num_workers=self.num_workers,
                         pin_memory=True,
                         drop_last=True,
