@@ -35,10 +35,13 @@ class SemanticDataset(Dataset):
         self.seg_list_b = [self.segmentation_path / f for f in seg_file_names_b]
         self.data_a, self.seg_data_a, self.data_b, self.seg_data_b = self.load_data()
         self.mapping: dict = settings.mapping
+        self.mapping_inv = {v: i for i, v in self.mapping.items()}
         self.ignore_classes = ['gallbladder']
         self.filter_dataset()
         self.data_a_size = self.data_a.shape[0]
         self.data_b_size = self.data_b.shape[0]
+        self.organs = [o for o in settings.organ_labels if o not in self.ignore_classes]
+        self.order = {int(self.mapping_inv[o]): i for i, o in enumerate(self.organs) if o not in self.ignore_classes}
 
     def filter_dataset(self):
         if self.ignore_classes:
@@ -99,7 +102,8 @@ class SemanticDataset(Dataset):
             "spectra_b": spectra_b.type(torch.float32),
             "seg_a": seg_a.type(torch.float32),
             "seg_b": seg_b.type(torch.float32),
-            "mapping": self.mapping}
+            "mapping": self.mapping,
+            "order": self.order}
 
     def __len__(self):
         return max(self.data_a_size, self.data_b_size)

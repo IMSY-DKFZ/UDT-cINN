@@ -5,6 +5,7 @@ import json
 
 from src.data.datasets.semantic_dataset import SemanticDataset
 from src import settings
+from src.utils.collate_function import collate_hsi
 
 
 class SemanticDataModule(pl.LightningDataModule):
@@ -63,6 +64,7 @@ class SemanticDataModule(pl.LightningDataModule):
                         num_workers=self.exp_config.num_workers,
                         pin_memory=True,
                         drop_last=True,
+                        collate_fn=collate_hsi
                         )
         return dl
 
@@ -73,6 +75,7 @@ class SemanticDataModule(pl.LightningDataModule):
                         num_workers=self.num_workers,
                         pin_memory=True,
                         drop_last=True,
+                        collate_fn=collate_hsi
                         )
         return dl
 
@@ -103,6 +106,7 @@ class EnableTestData:
                             num_workers=self.dl.num_workers,
                             pin_memory=True,
                             drop_last=True,
+                            collate_fn=collate_hsi
                             )
             return dl
         self.dl.__setattr__('test_dataloader', test_data_loader)

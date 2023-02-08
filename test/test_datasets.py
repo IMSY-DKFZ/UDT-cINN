@@ -131,6 +131,7 @@ class TestSemanticDataModule(unittest.TestCase):
                 self.assertTrue(isinstance(data.get('seg_b'), torch.Tensor))
                 self.assertFalse(np.any([i in data.get('seg_b') for i in ignore_indices]))
                 self.assertTrue(isinstance(data.get('mapping'), dict))
+                self.assertTrue(np.all([i in np.arange(len(data.get('order'))) for i in data.get('order').values()]))
 
     @unittest.skipIf(False, "loading all data is slow, this test should be run manually")
     def test_dl_loading_synthetic(self):
@@ -154,6 +155,7 @@ class TestSemanticDataModule(unittest.TestCase):
                 self.assertTrue(len(data.get('spectra_b').size()) == 2)
                 self.assertTrue(isinstance(data.get('seg_b'), torch.Tensor))
                 self.assertTrue(isinstance(data.get('mapping'), dict))
+                self.assertTrue(np.all([i in np.arange(len(data.get('order'))) for i in data.get('order').values()]))
 
     def test_dl_test_context_manager(self):
         with EnableTestData(self.dl):
@@ -167,6 +169,7 @@ class TestSemanticDataModule(unittest.TestCase):
                     self.assertTrue(len(data.get('spectra_b').size()) == 2)
                     self.assertTrue(isinstance(data.get('seg_b'), torch.Tensor))
                     self.assertTrue(isinstance(data.get('mapping'), dict))
+                    self.assertTrue(np.all([i in np.arange(len(data.get('order'))) for i in data.get('order').values()]))
         self.assertTrue(self.dl.test_dataloader is None)
 
 
