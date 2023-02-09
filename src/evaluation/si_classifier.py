@@ -119,9 +119,12 @@ def eval_classification():
         results.to_csv(settings.results_dir / 'rf' / f'rf_classifier_report_{stage}.csv', index=True)
 
         matrix = confusion_matrix(test_labels, y_pred, labels=labels, normalize='pred')
+        np.save(str(settings.results_dir / 'rf' / f'rf_classifier_train_x_{stage}.npy'), train_data)
+        np.save(str(settings.results_dir / 'rf' / f'rf_classifier_train_y_{stage}.npy'), train_labels)
+        np.save(str(settings.results_dir / 'rf' / f'rf_classifier_test_x_{stage}.npy'), test_data)
+        np.save(str(settings.results_dir / 'rf' / f'rf_classifier_test_y_{stage}.npy'), test_labels)
+        np.save(str(settings.results_dir / 'rf' / f'rf_classifier_test_y_pred_{stage}.npy'), y_pred)
         np.save(str(settings.results_dir / 'rf' / f'rf_classifier_matrix_{stage}.npy'), matrix)
-        np.save(str(settings.results_dir / 'rf' / f'rf_classifier_y_val_{stage}.npy'), test_labels)
-        np.save(str(settings.results_dir / 'rf' / f'rf_classifier_y_val_pred_{stage}.npy'), y_pred)
         joblib.dump(model, str(settings.results_dir / 'rf' / f'rf_classifier_{stage}.joblib'))
 
 
