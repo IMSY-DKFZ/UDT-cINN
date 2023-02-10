@@ -33,7 +33,7 @@ if run_by_bash:
     PYTHON_PATH = os.environ["PYTHON_PATH"]
 
 else:
-    EXPERIMENT_NAME = "cycle_gan"
+    EXPERIMENT_NAME = "gan_cinn_hsi"
     SAVE_DATA_PATH = "/home/kris/Work/Data/DA_results"
     DATA_BASE_PATH = "/home/kris/Work/Data/domain_adaptation_simulations"
     PYTHON_PATH = "/home/kris/Work/Repositories/miccai23/src"
@@ -51,9 +51,14 @@ config["data_base_path"] = DATA_BASE_PATH
 parser = DomainAdaptationParser(config=config)
 config = parser.get_new_config()
 
-pl.seed_everything(config.seed)
+pl.seed_everything(config.seed + 1)
 
 data_module = get_data_module(experiment_name=EXPERIMENT_NAME)
+enable_test_data = False
+if isinstance(data_module, tuple):
+    enable_test_data = True
+    test_data_manager = data_module[1]
+    data_module = data_module[0]
 model = get_model(experiment_name=EXPERIMENT_NAME)
 
 data_module = data_module(experiment_config=config)
@@ -61,11 +66,16 @@ model = model(experiment_config=config)
 logger = TensorBoardLogger(save_dir=save_path, name=time_stamp)
 logger.log_hyperparams(config)
 
-trainer = pl.trainer.Trainer(accelerator='gpu', devices=1, max_epochs=1, logger=logger,
+trainer = pl.trainer.Trainer(accelerator='gpu', devices=1, max_epochs=config.epochs, logger=logger,
                              callbacks=[ModelCheckpoint(save_top_k=-1, every_n_epochs=50)],
                              num_sanity_val_steps=0, check_val_every_n_epoch=1,
-                             limit_val_batches=1, limit_test_batches=1, limit_train_batches=1,
+                             limit_val_batches=1,
                              gradient_clip_val=0.1, gradient_clip_algorithm="value",
                              deterministic=False)
 trainer.fit(model, datamodule=data_module)
-trainer.test(model, datamodule=data_module)
+
+if enable_test_data:
+    with test_data_manager(data_module):
+        trainer.test(model, datamodule=data_module)
+else:
+    trainer.test(model, datamodule=data_module)
