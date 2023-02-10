@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import torch
 import joblib
+import os
 from omegaconf import DictConfig
 from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
@@ -125,6 +126,9 @@ def eval_classification():
         report = classification_report(test_labels, y_pred, target_names=names, labels=labels, output_dict=True)
 
         results = pd.DataFrame(report)
+        save_dir_path = settings.results_dir / 'rf'
+        if not os.path.exists(save_dir_path):
+            os.makedirs(save_dir_path, exist_ok=True)
         results.to_csv(settings.results_dir / 'rf' / f'rf_classifier_report_{stage}.csv', index=True)
 
         matrix = confusion_matrix(test_labels, y_pred, labels=labels, normalize='pred')
