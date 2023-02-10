@@ -47,35 +47,6 @@ class DomainAdaptationTrainerBasePA(pl.LightningModule, ABC):
             ret_data = images_a, images_b
         return ret_data
 
-    def spectral_consistency_loss(self, images_a, images_b, images_ab, images_ba, sc_criterion=0.7):
-        """
-
-        :param images_a:
-        :param images_b:
-        :param images_ab:
-        :param images_ba:
-        :param sc_criterion:
-        :return:
-        """
-
-        a_mask_orig = images_a[:, 0, :, :] > sc_criterion
-        b_mask_orig = images_b[:, 0, :, :] > sc_criterion
-
-        a_mask = a_mask_orig.unsqueeze(1)
-        b_mask = b_mask_orig.unsqueeze(1)
-
-        a_mask = torch.repeat_interleave(a_mask, self.channels, 1)
-        b_mask = torch.repeat_interleave(b_mask, self.channels, 1)
-
-        x_a = images_a[a_mask] / torch.norm(images_a, dim=1)[a_mask_orig].repeat(self.channels)
-        x_ab = images_ab[a_mask] / torch.norm(images_ab, dim=1)[a_mask_orig].repeat(self.channels)
-        x_b = images_b[b_mask] / torch.norm(images_b, dim=1)[b_mask_orig].repeat(self.channels)
-        x_ba = images_ba[b_mask] / torch.norm(images_ba, dim=1)[b_mask_orig].repeat(self.channels)
-        spectral_consistency_loss = self.recon_criterion(x_a, x_ab) + self.recon_criterion(x_b, x_ba)
-        spectral_consistency_loss = torch.log(spectral_consistency_loss)
-        spectral_consistency_loss *= self.config.sc_weight
-        return spectral_consistency_loss
-
     def recon_criterion(self, model_recon, target_recon):
         """
 
@@ -95,7 +66,7 @@ class DomainAdaptationTrainerBasePA(pl.LightningModule, ABC):
     def get_label_conditions(self, labels, n_labels: int, labels_size=None):
         if isinstance(labels, int) and labels == 0:
             one_hot_seg_shape = list(labels_size)
-            if len(labels_size) == 4:
+            if len(one_hot_seg_shape) == 4:
                 one_hot_seg_shape.pop(1)
 
             random_segmentation = np.random.choice(range(n_labels), size=one_hot_seg_shape)
@@ -113,7 +84,6 @@ class DomainAdaptationTrainerBasePA(pl.LightningModule, ABC):
             one_hot_seg = torch.stack([(labels == label) for label in range(n_labels)], dim=1)
 
         return one_hot_seg
-
 
     @abstractmethod
     def forward(self, inp, mode="a", *args, **kwargs):

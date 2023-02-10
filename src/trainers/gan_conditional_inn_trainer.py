@@ -76,12 +76,7 @@ class GanCondinitionalDomainAdaptationINN(DAInnBase):
         else:
             segmentation = None
 
-        if mode == "a":
-            conditions = self.get_conditions(inp.size()[0], mode="a", segmentation=segmentation)
-        elif mode == "b":
-            conditions = self.get_conditions(inp.size()[0], mode="b", segmentation=segmentation)
-        else:
-            raise AttributeError("Specify either mode 'a' or 'b'!")
+        conditions = self.get_conditions(inp.size()[0], mode=mode, segmentation=segmentation)
 
         out, jac = self.model(inp, c=conditions, *args, **kwargs)
 
