@@ -11,13 +11,13 @@ ndim_x: 16
 
 
 
-epochs: 250
+epochs: 200
 seed: 42
 
-batch_size: 512
+batch_size: 50000
 num_workers: 16
 shuffle: 1
-learning_rate: 0.0001
+learning_rate: 0.01
 
 adversarial_training: 1
 gan_weight: 1
@@ -30,6 +30,9 @@ instant_downsampling: False
 weight_decay: 0.0001           # weight decay
 beta1: 0.9                    # Adam parameter
 beta2: 0.95
+condition: segmentation       # segmentation, domain, both
+label_noise: True
+label_noise_level: 0.04
 
 data:
   data_set_name: real_sim_hsi     # real_sim, sim or mnist_usps
