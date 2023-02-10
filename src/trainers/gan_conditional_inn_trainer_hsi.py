@@ -20,37 +20,49 @@ class GanCondinitionalDomainAdaptationINNHSI(DAInnBaseHSI):
         self.discriminator_a = DiscriminatorHSI(self.config.dis, self.dimensions)
         self.discriminator_b = DiscriminatorHSI(self.config.dis, self.dimensions)
 
-    def get_conditions(self, batch_size):
-        conditions = dict()
-        conditions["a"] = list()
-        conditions["b"] = list()
+    def get_conditions(self, batch_size, mode: str = "a", segmentation: torch.Tensor = None):
+        conditions = list()
 
-        dims = self.dimensions
-        dims = [batch_size, dims]
+        dims = [batch_size, 2]
+        condition = torch.zeros(*dims)
+        cond_noise = torch.rand(*dims) * 0.1
 
-        for conditional_block in range(self.conditional_blocks):
-            cond_noise_a = torch.rand(*dims) * 0.1
-            condition_a = 1 - cond_noise_a
+        if mode == "a":
+            condition[:, 0] = 1 - cond_noise[:, 0]
+            condition[:, 1] = cond_noise[:, 0]
+        elif mode == "b":
+            condition[:, 1] = 1 - cond_noise[:, 1]
+            condition[:, 0] = cond_noise[:, 1]
 
-            cond_noise_b = torch.rand(*dims) * 0.1
-            condition_b = 0 + cond_noise_b
+        if segmentation is not None:
+            one_hot_seg = self.get_label_conditions(segmentation,
+                                                    n_labels=self.config.data.n_classes,
+                                                    labels_size=condition.size()
+                                                    )
 
-            conditions["a"].append(condition_a.cuda())
-            conditions["b"].append(condition_b.cuda())
+            condition = torch.cat((condition, one_hot_seg), dim=1)
+
+        conditions.append(condition.cuda())
+
         return conditions
 
     def forward(self, inp, mode="a", *args, **kwargs):
-
-        if mode == "a":
-            conditions = self.get_conditions(inp.size()[0])["a"]
-        elif mode == "b":
-            conditions = self.get_conditions(inp.size()[0])["b"]
+        if self.config.condition == "segmentation":
+            segmentation = 0
+            if isinstance(inp, tuple):
+                segmentation = inp[1].clone()
+                return_segmentation = inp[1].clone()
+                inp = inp[0]
         else:
-            raise AttributeError("Specify either mode 'a' or 'b'!")
+            segmentation = None
 
+        conditions = self.get_conditions(inp.size()[0], mode=mode, segmentation=segmentation)
         out, jac = self.model(inp, c=conditions, *args, **kwargs)
 
-        return out, jac
+        if (isinstance(segmentation, int) and segmentation == 0) or segmentation is None:
+            return out, jac
+        else:
+            return (out, return_segmentation), jac
 
     def training_step(self, batch, batch_idx, optimizer_idx, *args, **kwargs):
         return self.gan_inn_training_step(batch, optimizer_idx)
@@ -78,12 +90,14 @@ class GanCondinitionalDomainAdaptationINNHSI(DAInnBaseHSI):
 
         n_shared_blocks = int(self.n_blocks - self.conditional_blocks)
 
+        condition_shape = 2 if self.config.condition != "segmentation" else 2 + self.config.data.n_classes
+
         for c_block in range(self.conditional_blocks):
             model.append(
                 Fm.AllInOneBlock,
                 subnet_constructor=self.subnet,
-                cond=c_block,
-                cond_shape=(self.dimensions,),
+                cond=0,
+                cond_shape=(condition_shape,),
                 affine_clamping=self.config.clamping,
                 global_affine_init=self.config.actnorm,
                 permute_soft=False,

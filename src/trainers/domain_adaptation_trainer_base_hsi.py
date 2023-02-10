@@ -32,16 +32,42 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
             self.log(loss_key, loss_value, on_step=True, on_epoch=True, prog_bar=True, logger=True,
                      batch_size=self.config.batch_size)
 
-    @staticmethod
-    def get_spectra(batch) -> Tuple[torch.Tensor, torch.Tensor]:
+    def get_spectra(self, batch) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         expects that domain_a is the simulated data and domain_b is the real data
         """
         spectra_a = batch["spectra_a"]
         spectra_b = batch["spectra_b"]
         spectra_a, spectra_b = spectra_a.cuda(non_blocking=True), spectra_b.cuda(non_blocking=True)
+        if self.config.condition == "segmentation":
+            seg_a = torch.tensor([batch["order"][int(label)] for label in batch["seg_a"]]).type(torch.float32)
+            ret_data = (spectra_a, seg_a), spectra_b
+        else:
+            ret_data = spectra_a, spectra_b
 
-        return spectra_a, spectra_b
+        return ret_data
+
+    def get_label_conditions(self, labels, n_labels: int, labels_size=None):
+        if isinstance(labels, int) and labels == 0:
+            one_hot_seg_shape = list(labels_size)
+            if len(one_hot_seg_shape) == 2:
+                one_hot_seg_shape.pop(1)
+
+            random_segmentation = np.random.choice(range(n_labels), size=one_hot_seg_shape)
+
+            labels = torch.from_numpy(random_segmentation).type(torch.float32)
+
+        if self.config.label_noise:
+            one_hot_seg = torch.stack(
+                [(labels == label) + torch.rand_like(labels) * self.config.label_noise_level for label in
+                 range(n_labels)],
+                dim=1
+            )
+            one_hot_seg /= torch.linalg.norm(one_hot_seg, dim=1, keepdim=True, ord=1)
+        else:
+            one_hot_seg = torch.stack([(labels == label) for label in range(n_labels)], dim=1)
+
+        return one_hot_seg
 
     def recon_criterion(self, model_recon, target_recon):
         """
@@ -89,15 +115,18 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
         generated_spectrum_data_path = os.path.join(path, "generated_spectra_data")
         os.makedirs(generated_spectrum_data_path, exist_ok=True)
 
-        spectra_a, spectra_b = self.get_spectra(batch)
+        if self.config.condition == "segmentation":
+            (spectra_a, seg_a), spectra_b = self.get_spectra(batch)
+        else:
+            spectra_a, spectra_b = self.get_spectra(batch)
 
         spectra_ab = self.translate_spectrum(spectra_a, input_domain="a")
         spectra_ba = self.translate_spectrum(spectra_b, input_domain="b")
 
-        spectra_a = spectra_a.cpu().numpy()
-        spectra_b = spectra_b.cpu().numpy()
-        spectra_ab = spectra_ab.cpu().numpy()
-        spectra_ba = spectra_ba.cpu().numpy()
+        spectra_a = spectra_a[0].cpu().numpy() if isinstance(spectra_a, tuple) else spectra_a.cpu().numpy()
+        spectra_b = spectra_b[0].cpu().numpy() if isinstance(spectra_b, tuple) else spectra_b.cpu().numpy()
+        spectra_ab = spectra_ab[0].cpu().numpy() if isinstance(spectra_ab, tuple) else spectra_ab.cpu().numpy()
+        spectra_ba = spectra_ba[0].cpu().numpy() if isinstance(spectra_ba, tuple) else spectra_ba.cpu().numpy()
 
         if self.config.normalization not in ["None", "none"]:
             if self.config.normalization == "standardize":
@@ -112,10 +141,8 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
                  spectra_b=spectra_b,
                  spectra_ab=spectra_ab,
                  spectra_ba=spectra_ba,
-                 bvf_a=batch["bvf_a"],
-                 bvf_b=batch["bvf_b"],
-                 oxy_a=batch["oxy_a"],
-                 oxy_b=batch["oxy_b"],
+                 seg_a=batch["seg_a"].cpu().numpy(),
+                 seg_b=batch["seg_b"].cpu().numpy(),
                  )
 
         if True:
