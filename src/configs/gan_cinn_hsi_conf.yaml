@@ -17,7 +17,7 @@ seed: 42
 batch_size: 50000
 num_workers: 16
 shuffle: 1
-learning_rate: 0.01
+learning_rate: 0.001
 
 adversarial_training: 1
 gan_weight: 1
@@ -32,7 +32,7 @@ beta1: 0.9                    # Adam parameter
 beta2: 0.95
 condition: segmentation       # segmentation, domain, both
 label_noise: True
-label_noise_level: 0.04
+label_noise_level: 0.01
 
 data:
   data_set_name: real_sim_hsi     # real_sim, sim or mnist_usps
