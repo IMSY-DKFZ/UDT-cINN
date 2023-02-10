@@ -89,6 +89,9 @@ if __name__ == "__main__":
                + ["gan_cinn"] * len(gan_cinn_predictions) + ["unit"] * len(unit_predictions)
     predictions_df["dataset_type"] = label_list
 
-    sns.violinplot(data=predictions_df, x="dataset_type", y="class predictions", inner="points", scale="width")
+    sns.stripplot(data=predictions_df, x="dataset_type", y="class predictions",
+                  # inner="points",
+                  # scale="width"
+                  )
     plt.show()
 
