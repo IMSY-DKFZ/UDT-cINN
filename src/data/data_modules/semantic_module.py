@@ -103,16 +103,17 @@ class EnableTestData:
         self.dl.test_dataset = SemanticDataset(settings.intermediates_dir / 'semantic' / f'test_synthetic_{self.dl.target}',
                                                settings.intermediates_dir / 'semantic' / f'test',
                                                exp_config=self.dl.exp_config,
-                                               ignore_classes=self.dl.ignore_classes)
+                                               ignore_classes=self.dl.ignore_classes,
+                                               test_set=True)
 
         def test_data_loader():
             dl = DataLoader(self.dl.test_dataset,
                             batch_size=self.dl.batch_size,
-                            shuffle=self.dl.shuffle,
+                            shuffle=False,
                             num_workers=self.dl.num_workers,
                             pin_memory=True,
                             drop_last=True,
-                            collate_fn=collate_hsi
+                            collate_fn=collate_hsi,
                             )
             return dl
         self.dl.__setattr__('test_dataloader', test_data_loader)

@@ -17,7 +17,9 @@ class SemanticDataset(Dataset):
                  exp_config: DictConfig,
                  noise_aug: bool = False,
                  noise_std: float = 0.3,
-                 ignore_classes: list = None):
+                 ignore_classes: list = None,
+                 test_set: bool = False
+                 ):
         super(SemanticDataset, self).__init__()
         self.root_a = root_a
         self.root_b = root_b
@@ -44,6 +46,7 @@ class SemanticDataset(Dataset):
         self.data_b_size = self.data_b.shape[0]
         self.organs = [o for o in settings.organ_labels if o not in self.ignore_classes]
         self.order = {int(self.mapping_inv[o]): i for i, o in enumerate(self.organs) if o not in self.ignore_classes}
+        self.test_set = test_set
 
     def filter_dataset(self):
         if self.ignore_classes:
@@ -108,4 +111,8 @@ class SemanticDataset(Dataset):
             "order": self.order}
 
     def __len__(self):
-        return max(self.data_a_size, self.data_b_size)
+        if self.test_set:
+            size = min(self.data_a_size, self.data_b_size)
+        else:
+            size = max(self.data_a_size, self.data_b_size)
+        return size
