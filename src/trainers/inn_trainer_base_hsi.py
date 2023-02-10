@@ -194,17 +194,19 @@ class DAInnBaseHSI(DomainAdaptationTrainerBaseHSI, ABC):
 
         plt.subplot(3, 1, 1)
         plt.title("HSI Spectra")
-        plt.plot(spectra_a, color="green", linestyle="solid", label="spectrum domain A")
+        organ_label_a = batch["mapping"][str(int(batch["seg_a"].cpu()))]
+        organ_label_b = batch["mapping"][str(int(batch["seg_b"].cpu()))]
+        plt.plot(spectra_a, color="green", linestyle="solid", label=f"{organ_label_a} spectrum domain A")
         plt.plot(spectra_aba, color="green", linestyle="", marker="o", label="cycle reconstructed spectrum A")
-        plt.plot(spectra_b, color="blue", linestyle="solid", label="spectrum domain B")
+        plt.plot(spectra_b, color="blue", linestyle="solid", label=f"{organ_label_b} spectrum domain B")
         plt.plot(spectra_bab, color="blue", linestyle="", marker="o", label="cycle reconstructed spectrum B")
         plt.ylim(minimum, maximum)
         plt.legend()
 
         plt.subplot(3, 1, 2)
         plt.title("Domain adapted spectra")
-        plt.plot(spectra_ab, color="green", linestyle="dashed", label="spectrum domain AB")
-        plt.plot(spectra_ba, color="blue", linestyle="dashed", label="spectrum domain BA")
+        plt.plot(spectra_ab, color="green", linestyle="dashed", label=f"{organ_label_a} spectrum domain AB")
+        plt.plot(spectra_ba, color="blue", linestyle="dashed", label=f"{organ_label_b} spectrum domain BA")
         plt.ylim(minimum, maximum)
         plt.legend()
 
