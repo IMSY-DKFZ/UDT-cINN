@@ -60,7 +60,9 @@ class DAInnBase(DomainAdaptationTrainerBasePA, ABC):
 
     def sample_inverted_image(self, image, mode="a", visualize=False):
         mn, mx = image.min(), image.max()
+        torch.manual_seed(42)
         z, _ = self.forward(image, mode=mode)
+        torch.manual_seed(42)
         x_inv, _ = self.forward(z, rev=True, mode=mode)
         print(f"Maximum Deviation: {torch.max(torch.abs(x_inv - image))}",
               f"Mean Deviation: {torch.mean(torch.abs(x_inv - image))}")
