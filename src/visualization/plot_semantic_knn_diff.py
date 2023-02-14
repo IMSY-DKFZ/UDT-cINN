@@ -53,19 +53,46 @@ def load_data(splits: list, norm: bool = True):
     return results
 
 
+def load_inn_results() -> pd.DataFrame:
+    folder = settings.results_dir / 'inn' / 'generated_spectra_data'
+    files = list(folder.glob('*.npz'))
+    data = []
+    seg = []
+    for file in files:
+        tmp_data = np.load(file, allow_pickle=True)
+        x = tmp_data['spectra_ab']
+        # spectra adapted from synthetic to real should be normalized with the statistics of the real data set
+        x = normalize(x, axis=1, norm='l1')
+        y = tmp_data['seg_a']
+        data.append(x)
+        seg.append(y)
+    data = np.concatenate(data, axis=0)
+    seg = np.concatenate(seg)
+    df = pd.DataFrame(data)
+    df.columns = np.arange(500, 1000, 5)
+    df['dataset'] = 'inn_adapted'
+    df['organ'] = [settings.mapping[str(int(i))] for i in seg]
+    df = df.melt(id_vars=['organ', 'dataset'], value_name="reflectance", var_name="wavelength")
+    return df
+
+
 def plot_semantic_spectra():
+    inn_results = load_inn_results()
     data = load_data(splits=['train', 'train_synthetic_adapted', 'train_synthetic_sampled'])
-    train_agg = data.get('train').copy().groupby(['organ', 'wavelength', 'subject_id'],
-                                                 as_index=False).reflectance.median()
-    train_sampled_agg = data.get('train_synthetic_sampled').copy().groupby(['organ', 'wavelength', 'subject_id'],
-                                                                           as_index=False).reflectance.median()
-    train_adapted_agg = data.get('train_synthetic_adapted').copy().groupby(['organ', 'wavelength', 'subject_id'],
-                                                                           as_index=False).reflectance.median()
+    # train_agg = data.get('train').copy().groupby(['organ', 'wavelength', 'subject_id'],
+    #                                              as_index=False).reflectance.median()
+    train_agg = data.get('train').copy()
+    # train_sampled_agg = data.get('train_synthetic_sampled').copy().groupby(['organ', 'wavelength', 'subject_id'],
+    #                                                                        as_index=False).reflectance.median()
+    train_sampled_agg = data.get('train_synthetic_sampled').copy()
+    # train_adapted_agg = data.get('train_synthetic_adapted').copy().groupby(['organ', 'wavelength', 'subject_id'],
+    #                                                                        as_index=False).reflectance.median()
+    train_adapted_agg = data.get('train_synthetic_adapted').copy()
     train_agg['dataset'] = 'real'
     train_sampled_agg['dataset'] = 'simulated_sampled'
     train_adapted_agg['dataset'] = 'simulated_adapted'
 
-    df = pd.concat([train_agg, train_sampled_agg, train_adapted_agg], ignore_index=True, axis=0)
+    df = pd.concat([train_agg, train_sampled_agg, train_adapted_agg, inn_results], ignore_index=True, sort=True, axis=0)
 
     sns.set_context('talk')
     n_classes = len(df.organ.unique())

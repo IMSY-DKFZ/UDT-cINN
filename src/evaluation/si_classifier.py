@@ -24,7 +24,7 @@ def get_label_mapping():
     return content
 
 
-def load_data():
+def load_data(target: str = 'val'):
     conf = dict(
         batch_size=100,
         shuffle=False,
@@ -39,7 +39,12 @@ def load_data():
     # data_a refers to simulations while data_b refers to real data
     # load real data from test data set
     with EnableTestData(dm):
-        test_dl = dm.test_dataloader()
+        if target == 'test':
+            test_dl = dm.test_dataloader()
+        elif target == 'val':
+            test_dl = dm.val_dataloader()
+        else:
+            raise ValueError(f"unknown target {target}")
     tdata_b = test_dl.dataset.data_b
     tdata_b = ((tdata_b / torch.linalg.norm(tdata_b, ord=2, dim=1).unsqueeze(dim=1)) - test_dl.dataset.exp_config.data["mean_b"]) / test_dl.dataset.exp_config.data["std_b"]
     tseg_b = test_dl.dataset.seg_data_b
@@ -61,7 +66,7 @@ def load_data():
     seg_b = seg_b[index]
 
     # load synthetic data adapted with INNs
-    folder = settings.results_dir / 'inn'
+    folder = settings.results_dir / 'inn' / 'generated_spectra_data'
     files = list(folder.glob('*.npz'))
     data_c = []
     seg_c = []
@@ -75,12 +80,20 @@ def load_data():
         seg_c.append(y)
     data_c = torch.concatenate(data_c, dim=0)
     seg_c = torch.concatenate(seg_c)
+    index = np.random.choice(np.arange(data_c.shape[0]), size=n_samples, replace=True)
+    data_c = data_c[index]
+    seg_c = seg_c[index]
 
     # load data adapted by integrating filter responses of optical system
     dm = SemanticDataModule(experiment_config=conf, target='adapted')
     dm.setup(stage='eval')
     with EnableTestData(dm):
-        test_dl_adapted = dm.test_dataloader()
+        if target == 'test':
+            test_dl_adapted = dm.test_dataloader()
+        elif target == 'val':
+            test_dl_adapted = dm.val_dataloader()
+        else:
+            raise ValueError(f"unknown target {target}")
     data_d = test_dl_adapted.dataset.data_a
     data_d = ((data_d / torch.linalg.norm(data_d, ord=2, dim=1).unsqueeze(dim=1)) - test_dl_adapted.dataset.exp_config.data["mean_a"]) / test_dl_adapted.dataset.exp_config.data["std_a"]
     seg_d = test_dl_adapted.dataset.seg_data_a
@@ -88,7 +101,7 @@ def load_data():
     data_d = data_d[index]
     seg_d = seg_d[index]
 
-    # assert seg_b.size() == tseg_a.size() == seg_c.size() == seg_d.size() == tseg_b.size(), 'missmatch in data set sizes'
+    assert seg_b.size() == tseg_a.size() == seg_c.size() == seg_d.size() == tseg_b.size(), 'missmatch in data set sizes'
     results = dict(train=dict(x_real=data_b, y_real=seg_b, x_sampled=tdata_a, y_sampled=tseg_a,
                               x_adapted_inn=data_c, y_adapted_inn=seg_c, x_adapted=data_d, y_adapted=seg_d),
                    test=dict(x_real=tdata_b, y_real=tseg_b))
@@ -101,7 +114,7 @@ def get_model(x: np.ndarray, y: np.ndarray, **kwargs):
     return model
 
 
-def eval_classification():
+def eval_classification(target: str):
     stages = [
         'adapted_inn',  # train model on synthetic test set adapted to real domain via INNs
         'real',  # train model on real train set sub sampled to have same size as test set
@@ -111,7 +124,7 @@ def eval_classification():
     mapping = get_label_mapping()
     labels = [int(k) for k in mapping]
     names = [mapping[str(k)] for k in labels]
-    data = load_data()
+    data = load_data(target=target)
     for stage in tqdm(stages, desc="iterating stages"):
         train_data = data.get('train').get(f'x_{stage}')
         train_labels = data.get('train').get(f'y_{stage}')
@@ -144,9 +157,10 @@ def eval_classification():
 
 @click.command()
 @click.option('--rf', is_flag=True, help="evaluate random forest classifier")
-def main(rf: bool):
+@click.option('--target', type=str, default='val', help="target data set used to compute classification results")
+def main(rf: bool, target: str):
     if rf:
-        eval_classification()
+        eval_classification(target=target)
 
 
 if __name__ == '__main__':
