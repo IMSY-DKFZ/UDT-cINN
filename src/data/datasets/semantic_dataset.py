@@ -37,15 +37,20 @@ class SemanticDataset(Dataset):
         seg_file_names_b = self._strip_names([f.name for f in self.image_list_b])
         self.seg_list_a = [self.segmentation_path / f for f in seg_file_names_a]
         self.seg_list_b = [self.segmentation_path / f for f in seg_file_names_b]
-        self.data_a, self.seg_data_a, self.data_b, self.seg_data_b = self.load_data()
+        self.data_a, self.seg_data_a, self.data_b, self.seg_data_b, self.subjects_a, self.subjects_b = self.load_data()
         self.mapping: dict = settings.mapping
         self.mapping_inv = {v: i for i, v in self.mapping.items()}
         self.ignore_classes = ignore_classes
         self.filter_dataset()
         self.data_a_size = self.data_a.shape[0]
         self.data_b_size = self.data_b.shape[0]
-        self.organs = [o for o in settings.organ_labels if o not in self.ignore_classes]
-        self.order = {int(self.mapping_inv[o]): i for i, o in enumerate(self.organs) if o not in self.ignore_classes}
+        if self.ignore_classes:
+            self.organs = [o for o in settings.organ_labels if o not in self.ignore_classes]
+            self.order = {int(self.mapping_inv[o]): i for i, o in enumerate(self.organs) if
+                          o not in self.ignore_classes}
+        else:
+            self.organs = settings.organ_labels
+            self.order = {int(self.mapping_inv[o]): i for i, o in enumerate(self.organs)}
         self.test_set = test_set
 
     def filter_dataset(self):
@@ -74,7 +79,11 @@ class SemanticDataset(Dataset):
 
     def load_data(self):
         arrays_a = [np.load(str(f), allow_pickle=True) for f in self.image_list_a]
+        subjects_a = [[str(f.name).split('#')[0] for _ in range(a.shape[0])] for f, a in zip(self.image_list_a, arrays_a)]
+        subjects_a = np.concatenate(subjects_a)
         arrays_b = [np.load(str(f), allow_pickle=True) for f in self.image_list_b]
+        subjects_b = [[str(f.name).split('#')[0] for _ in range(b.shape[0])] for f, b in zip(self.image_list_b, arrays_b)]
+        subjects_b = np.concatenate(subjects_b)
         seg_maps_a = [np.load(str(f), allow_pickle=True) for f in self.seg_list_a]
         seg_maps_b = [np.load(str(f), allow_pickle=True) for f in self.seg_list_b]
         data_a = torch.tensor(np.concatenate(arrays_a))
@@ -84,7 +93,7 @@ class SemanticDataset(Dataset):
         ind = torch.randperm(data_a.shape[0])
         data_a = data_a[ind, :]
         seg_data_a = seg_data_a[ind]
-        return data_a, seg_data_a, data_b, seg_data_b
+        return data_a, seg_data_a, data_b, seg_data_b, subjects_a, subjects_b
 
     @staticmethod
     def normalize(x: torch.Tensor):
@@ -95,6 +104,8 @@ class SemanticDataset(Dataset):
         spectra_b = self.data_b[index % self.data_b_size, ...]
         seg_a = self.seg_data_a[index % self.data_a_size]
         seg_b = self.seg_data_b[index % self.data_b_size]
+        subjects_a = self.subjects_a[index % self.data_a_size]
+        subjects_b = self.subjects_b[index % self.data_b_size]
         # normalization and noise augmentation
         if self.normalization and self.normalization == "standardize":
             spectra_a = (self.normalize(spectra_a) - self.exp_config.data["mean_a"]) / self.exp_config.data["std_a"]
@@ -107,6 +118,8 @@ class SemanticDataset(Dataset):
             "spectra_b": spectra_b.type(torch.float32),
             "seg_a": seg_a.type(torch.float32),
             "seg_b": seg_b.type(torch.float32),
+            "subjects_a": subjects_a,
+            "subjects_b": subjects_b,
             "mapping": self.mapping,
             "order": self.order}
 

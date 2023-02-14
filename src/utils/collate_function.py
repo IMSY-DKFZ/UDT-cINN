@@ -30,6 +30,8 @@ def collate_hsi(batch):
 
     seg_a = torch.tensor([i['seg_a'] for i in batch])
     seg_b = torch.tensor([i['seg_b'] for i in batch])
+    subjects_a = np.array([i['subjects_a'] for i in batch])
+    subjects_b = np.array([i['subjects_b'] for i in batch])
     mapping = batch[0]['mapping']
     order = batch[0]['order']
     return {
@@ -37,6 +39,8 @@ def collate_hsi(batch):
         'spectra_b': spectra_b,
         'seg_a': seg_a,
         'seg_b': seg_b,
+        'subjects_a': subjects_a,
+        'subjects_b': subjects_b,
         'mapping': mapping,
         'order': order
     }
