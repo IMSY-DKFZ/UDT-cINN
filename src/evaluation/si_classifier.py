@@ -15,12 +15,24 @@ from src import settings
 
 here = Path(__file__)
 
+IGNORE_CLASSES = [
+    'gallbladder',
+    # 'liver',
+    # 'fat',
+    # 'skin',
+    # 'stomach',
+    # 'peritoneum',
+    # 'colon',
+    # 'omentum',
+    # 'bladder'
+]
+LABELS = [int(k) for k, i in settings.mapping.items() if i in settings.organ_labels and i not in IGNORE_CLASSES]
+
 
 def get_label_mapping():
     mapping = settings.mapping
-    ignore_organs = ['gallbladder']
     organ_labels = settings.organ_labels
-    content = {k: i for k, i in mapping.items() if i in organ_labels and i not in ignore_organs}
+    content = {k: i for k, i in mapping.items() if i in organ_labels and i not in IGNORE_CLASSES}
     return content
 
 
@@ -34,10 +46,11 @@ def load_data(target: str = 'val'):
     )
     conf = DictConfig(conf)
     dm = SemanticDataModule(experiment_config=conf, target='sampled')
+    dm.ignore_classes = IGNORE_CLASSES
     dm.setup(stage='eval')
     tdl = dm.train_dataloader()
     # data_a refers to simulations while data_b refers to real data
-    # load real data from test data set
+    # load real data from target data set
     with EnableTestData(dm):
         if target == 'test':
             test_dl = dm.test_dataloader()
@@ -49,7 +62,7 @@ def load_data(target: str = 'val'):
     tdata_b = ((tdata_b / torch.linalg.norm(tdata_b, ord=2, dim=1).unsqueeze(dim=1)) - test_dl.dataset.exp_config.data["mean_b"]) / test_dl.dataset.exp_config.data["std_b"]
     tseg_b = test_dl.dataset.seg_data_b
     n_samples = tdata_b.shape[0]
-    # load synthetic data from test data set
+    # load synthetic data from target data set
     tdata_a = test_dl.dataset.data_a
     tdata_a = ((tdata_a / torch.linalg.norm(tdata_a, ord=2, dim=1).unsqueeze(dim=1)) - test_dl.dataset.exp_config.data["mean_a"]) / test_dl.dataset.exp_config.data["std_a"]
     tseg_a = test_dl.dataset.seg_data_a
@@ -66,7 +79,7 @@ def load_data(target: str = 'val'):
     seg_b = seg_b[index]
 
     # load synthetic data adapted with INNs
-    folder = settings.results_dir / 'inn' / 'generated_spectra_data'
+    folder = settings.results_dir / 'inn' / 'inn'
     files = list(folder.glob('*.npz'))
     data_c = []
     seg_c = []
@@ -75,7 +88,11 @@ def load_data(target: str = 'val'):
         x = torch.tensor(tmp_data['spectra_ab'])
         # spectra adapted from synthetic to real should be normalized with the statistics of the real data set
         x = ((x / torch.linalg.norm(x, ord=2, dim=1).unsqueeze(dim=1)) - tdl.dataset.exp_config.data["mean_b"]) / tdl.dataset.exp_config.data["std_b"]
-        y = torch.tensor(tmp_data['seg_a'])
+        y = tmp_data['seg_a']
+        selector = np.any([y == i for i in LABELS], axis=0)
+        y = torch.tensor(y)
+        x = x[selector]
+        y = y[selector]
         data_c.append(x)
         seg_c.append(y)
     data_c = torch.concatenate(data_c, dim=0)
@@ -86,6 +103,7 @@ def load_data(target: str = 'val'):
 
     # load data adapted by integrating filter responses of optical system
     dm = SemanticDataModule(experiment_config=conf, target='adapted')
+    dm.ignore_classes = IGNORE_CLASSES
     dm.setup(stage='eval')
     with EnableTestData(dm):
         if target == 'test':

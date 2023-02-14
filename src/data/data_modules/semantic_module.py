@@ -42,8 +42,7 @@ class SemanticDataModule(pl.LightningDataModule):
         self.dimensions = 100
         self.data_stats = self.load_data_stats()
         self.ignore_classes = ['gallbladder']
-        self.organs = [o for o in settings.organ_labels if o not in self.ignore_classes]
-        self.adjust_experiment_config()
+        self.organs = None
 
     @staticmethod
     def load_data_stats():
@@ -52,6 +51,8 @@ class SemanticDataModule(pl.LightningDataModule):
         return content
 
     def setup(self, stage: str) -> None:
+        self.organs = [o for o in settings.organ_labels if o not in self.ignore_classes]
+        self.adjust_experiment_config()
         self.train_dataset = SemanticDataset(settings.intermediates_dir / 'semantic' / f'train_synthetic_{self.target}',
                                              settings.intermediates_dir / 'semantic' / f'train',
                                              exp_config=self.exp_config,

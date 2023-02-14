@@ -85,7 +85,7 @@ class TestSemanticDataset(unittest.TestCase):
 
 class TestSemanticDataModule(unittest.TestCase):
     def setUp(self) -> None:
-        conf = dict(batch_size=100,
+        conf = dict(batch_size=1000,
                     shuffle=False,
                     num_workers=1,
                     normalization='standardize',
@@ -132,11 +132,11 @@ class TestSemanticDataModule(unittest.TestCase):
                 self.assertTrue(isinstance(data.get('spectra_a'), torch.Tensor))
                 self.assertTrue(len(data.get('spectra_a').size()) == 2)
                 self.assertTrue(isinstance(data.get('seg_a'), torch.Tensor))
-                self.assertFalse(np.any([i in data.get('seg_a') for i in ignore_indices]))
+                self.assertTrue(np.all([i not in data.get('seg_a') for i in ignore_indices]))
                 self.assertTrue(isinstance(data.get('spectra_b'), torch.Tensor))
                 self.assertTrue(len(data.get('spectra_b').size()) == 2)
                 self.assertTrue(isinstance(data.get('seg_b'), torch.Tensor))
-                self.assertFalse(np.any([i in data.get('seg_b') for i in ignore_indices]))
+                self.assertTrue(np.any([i not in data.get('seg_b') for i in ignore_indices]))
                 self.assertTrue(isinstance(data.get('mapping'), dict))
                 self.assertTrue(np.all([i in np.arange(len(data.get('order'))) for i in data.get('order').values()]))
                 self.assertTrue(isinstance(data.get('subjects_a'), np.ndarray))

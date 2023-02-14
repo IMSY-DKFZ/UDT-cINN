@@ -60,15 +60,17 @@ class SemanticDataset(Dataset):
             masks_a = [(self.seg_data_a != i).numpy() for i in ignored_indices]
             masks_b = [(self.seg_data_b != i).numpy() for i in ignored_indices]
             if masks_a:
-                mask = np.any(masks_a, axis=0)
+                mask = np.all(masks_a, axis=0)
                 assert mask.shape == self.seg_data_a.shape
                 self.data_a = self.data_a[mask]
                 self.seg_data_a = self.seg_data_a[mask]
+                assert np.all([i not in self.seg_data_a for i in ignored_indices])
             if masks_b:
-                mask = np.any(masks_b, axis=0)
+                mask = np.all(masks_b, axis=0)
                 assert mask.shape == self.seg_data_b.shape
                 self.data_b = self.data_b[mask]
                 self.seg_data_b = self.seg_data_b[mask]
+                assert np.all([i not in self.seg_data_b for i in ignored_indices])
 
     @staticmethod
     def _strip_names(files: List[str]):
