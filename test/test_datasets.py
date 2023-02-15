@@ -65,6 +65,8 @@ class TestSemanticDataset(unittest.TestCase):
         self.assertTrue(isinstance(data.get('mapping'), dict))
         self.assertTrue(isinstance(data.get('subjects_a'), str))
         self.assertTrue(isinstance(data.get('subjects_b'), str))
+        self.assertTrue(isinstance(data.get('image_ids_a'), str))
+        self.assertTrue(isinstance(data.get('image_ids_b'), str))
 
     def test_segmentations(self):
         folder = settings.intermediates_dir / 'semantic'
@@ -108,6 +110,11 @@ class TestSemanticDataModule(unittest.TestCase):
         self.assertTrue(isinstance(data.get('mapping'), dict))
         self.assertTrue(isinstance(data.get('subjects_a'), np.ndarray))
         self.assertTrue(isinstance(data.get('subjects_b'), np.ndarray))
+        self.assertTrue(isinstance(data.get('image_ids_a'), np.ndarray))
+        self.assertTrue(isinstance(data.get('image_ids_b'), np.ndarray))
+        self.assertTrue(len(data.get('spectra_a')) == len(data.get('spectra_b')) == len(data.get('seg_a'))
+                        == len(data.get('seg_b')) == len(data.get('subjects_a')) == len(data.get('subjects_b'))
+                        == len(data.get('image_ids_a')) == len(data.get('image_ids_b')))
 
     def test_val_dl(self):
         dl = self.dl.val_dataloader()
@@ -121,6 +128,11 @@ class TestSemanticDataModule(unittest.TestCase):
         self.assertTrue(isinstance(data.get('mapping'), dict))
         self.assertTrue(isinstance(data.get('subjects_a'), np.ndarray))
         self.assertTrue(isinstance(data.get('subjects_b'), np.ndarray))
+        self.assertTrue(isinstance(data.get('image_ids_a'), np.ndarray))
+        self.assertTrue(isinstance(data.get('image_ids_b'), np.ndarray))
+        self.assertTrue(len(data.get('spectra_a')) == len(data.get('spectra_b')) == len(data.get('seg_a'))
+                        == len(data.get('seg_b')) == len(data.get('subjects_a')) == len(data.get('subjects_b'))
+                        == len(data.get('image_ids_a')) == len(data.get('image_ids_b')))
 
     @unittest.skipIf(False, "loading all data is slow, this test should be run manually")
     def test_dl_loading(self):
@@ -141,6 +153,11 @@ class TestSemanticDataModule(unittest.TestCase):
                 self.assertTrue(np.all([i in np.arange(len(data.get('order'))) for i in data.get('order').values()]))
                 self.assertTrue(isinstance(data.get('subjects_a'), np.ndarray))
                 self.assertTrue(isinstance(data.get('subjects_b'), np.ndarray))
+                self.assertTrue(isinstance(data.get('image_ids_a'), np.ndarray))
+                self.assertTrue(isinstance(data.get('image_ids_b'), np.ndarray))
+                self.assertTrue(len(data.get('spectra_a')) == len(data.get('spectra_b')) == len(data.get('seg_a'))
+                                == len(data.get('seg_b')) == len(data.get('subjects_a')) == len(data.get('subjects_b'))
+                                == len(data.get('image_ids_a')) == len(data.get('image_ids_b')))
 
     @unittest.skipIf(False, "loading all data is slow, this test should be run manually")
     def test_dl_loading_synthetic(self):
@@ -167,6 +184,11 @@ class TestSemanticDataModule(unittest.TestCase):
                 self.assertTrue(np.all([i in np.arange(len(data.get('order'))) for i in data.get('order').values()]))
                 self.assertTrue(isinstance(data.get('subjects_a'), np.ndarray))
                 self.assertTrue(isinstance(data.get('subjects_b'), np.ndarray))
+                self.assertTrue(isinstance(data.get('image_ids_a'), np.ndarray))
+                self.assertTrue(isinstance(data.get('image_ids_b'), np.ndarray))
+                self.assertTrue(len(data.get('spectra_a')) == len(data.get('spectra_b')) == len(data.get('seg_a'))
+                                == len(data.get('seg_b')) == len(data.get('subjects_a')) == len(data.get('subjects_b'))
+                                == len(data.get('image_ids_a')) == len(data.get('image_ids_b')))
 
     def test_dl_test_context_manager(self):
         with EnableTestData(self.dl):
@@ -183,6 +205,12 @@ class TestSemanticDataModule(unittest.TestCase):
                     self.assertTrue(np.all([i in np.arange(len(data.get('order'))) for i in data.get('order').values()]))
                     self.assertTrue(isinstance(data.get('subjects_a'), np.ndarray))
                     self.assertTrue(isinstance(data.get('subjects_b'), np.ndarray))
+                    self.assertTrue(isinstance(data.get('image_ids_a'), np.ndarray))
+                    self.assertTrue(isinstance(data.get('image_ids_b'), np.ndarray))
+                    self.assertTrue(len(data.get('spectra_a')) == len(data.get('spectra_b')) == len(data.get('seg_a'))
+                                    == len(data.get('seg_b')) == len(data.get('subjects_a')) == len(
+                        data.get('subjects_b'))
+                                    == len(data.get('image_ids_a')) == len(data.get('image_ids_b')))
         self.assertTrue(self.dl.test_dataloader is None)
 
 
