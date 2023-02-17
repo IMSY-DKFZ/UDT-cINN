@@ -55,7 +55,10 @@ class SemanticDataModule(pl.LightningDataModule):
         self.train_dataset = SemanticDataset(settings.intermediates_dir / 'semantic' / f'train_synthetic_{self.target}',
                                              settings.intermediates_dir / 'semantic' / f'train',
                                              exp_config=self.exp_config,
-                                             ignore_classes=self.ignore_classes)
+                                             ignore_classes=self.ignore_classes,
+                                             noise_aug=self.exp_config.noise_aug,
+                                             noise_std=self.exp_config.noise_aug_level
+                                             )
         self.val_dataset = SemanticDataset(settings.intermediates_dir / 'semantic' / f'val_synthetic_{self.target}',
                                            settings.intermediates_dir / 'semantic' / f'val',
                                            exp_config=self.exp_config,

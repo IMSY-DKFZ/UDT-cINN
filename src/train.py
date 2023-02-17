@@ -33,7 +33,7 @@ if run_by_bash:
     PYTHON_PATH = os.environ["PYTHON_PATH"]
 
 else:
-    EXPERIMENT_NAME = "waic"
+    EXPERIMENT_NAME = "gan_cinn_hsi"
     SAVE_DATA_PATH = "/home/kris/Work/Data/DA_results"
     DATA_BASE_PATH = "/home/kris/Work/Data/domain_adaptation_simulations"
     PYTHON_PATH = "/home/kris/Work/Repositories/miccai23/src"
@@ -51,7 +51,7 @@ config["data_base_path"] = DATA_BASE_PATH
 parser = DomainAdaptationParser(config=config)
 config = parser.get_new_config()
 
-pl.seed_everything(config.seed + 1)
+pl.seed_everything(config.seed)
 
 data_module = get_data_module(experiment_name=EXPERIMENT_NAME)
 enable_test_data = False
