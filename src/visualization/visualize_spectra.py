@@ -44,6 +44,7 @@ if __name__ == "__main__":
         if CLUSTERING == "PCA":
             for vessel in ["artery", "vein"]:
                 pca = PCA(n_components=2).fit(real_spectra[f"{vessel}_spectra_all"])
+                print(f"Explained_variance = {pca.explained_variance_ratio_}")
 
                 sim_pca = pca.transform(sim_spectra[f"{vessel}_spectra_all"])
                 real_pca = pca.transform(real_spectra[f"{vessel}_spectra_all"])
@@ -64,9 +65,14 @@ if __name__ == "__main__":
                 # plt.scatter(real_pca[:, 0], real_pca[:, 1], alpha=0.1, label="real")
                 # plt.scatter(gan_cinn_pca[:, 0], gan_cinn_pca[:, 1], alpha=0.1, label="gan_cinn")
                 # plt.legend()
-                sns.jointplot(data=pca_df, x="PCA component 1", y="PCA component 2", hue="data_type", kind="kde", fill=True,
-                              alpha=0.5)
+
+                sns.jointplot(data=pca_df, x="PCA component 1", y="PCA component 2", hue="data_type",
+                              kind="kde", fill=True,
+                              alpha=0.4, marginal_kws={'common_norm': False})
                 plt.suptitle(f"{vessel} PCA components")
+                plt.tight_layout()
+                plt.xlim(-0.3, 0.3)
+                plt.ylim(-0.1, 0.1)
                 plt.show()
 
         elif CLUSTERING == "TSNE":
