@@ -143,16 +143,22 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
                  spectra_ba=spectra_ba,
                  seg_a=batch["seg_a"].cpu().numpy(),
                  seg_b=batch["seg_b"].cpu().numpy(),
+                 subjects_a=batch["subjects_a"],
+                 subjects_b=batch["subjects_b"],
+                 image_ids_a=batch["image_ids_a"],
+                 image_ids_b=batch["image_ids_b"],
                  )
 
         if True:
+            organ_label_a = batch["mapping"][str(int(batch["seg_a"][0].cpu()))]
+            organ_label_b = batch["mapping"][str(int(batch["seg_b"][0].cpu()))]
             generated_spectra_path = os.path.join(path, "generated_spectra")
             os.makedirs(generated_spectra_path, exist_ok=True)
             plt.figure(figsize=(6, 6))
-            plt.plot(spectra_a[0], color="green", linestyle="solid", label="spectrum domain A")
-            plt.plot(spectra_b[0], color="blue", linestyle="solid", label="spectrum domain B")
-            plt.plot(spectra_ab[0], color="blue", linestyle="dashed", label="spectrum domain AB")
-            plt.plot(spectra_ba[0], color="green", linestyle="dashed", label="spectrum domain BA")
+            plt.plot(spectra_a[0], color="green", linestyle="solid", label=f"{organ_label_a} spectrum domain A")
+            plt.plot(spectra_b[0], color="blue", linestyle="solid", label=f"{organ_label_b} spectrum domain B")
+            plt.plot(spectra_ab[0], color="green", linestyle="dashed", label=f"{organ_label_a} spectrum domain AB")
+            plt.plot(spectra_ba[0], color="blue", linestyle="dashed", label=f"{organ_label_b} spectrum domain BA")
             plt.legend()
             plt.savefig(os.path.join(generated_spectra_path, f"test_batch_{batch_idx}.png"))
             plt.close()
