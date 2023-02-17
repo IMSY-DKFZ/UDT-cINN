@@ -7,13 +7,15 @@ import os
 from omegaconf import DictConfig
 from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import confusion_matrix, classification_report, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
 from src import settings
 
 here = Path(__file__)
+np.random.seed(100)
 
 IGNORE_CLASSES = [
     'gallbladder',
@@ -79,7 +81,7 @@ def load_data(target: str = 'val'):
     seg_b = seg_b[index]
 
     # load synthetic data adapted with INNs
-    folder = settings.results_dir / 'inn' / 'inn'
+    folder = settings.results_dir / 'inn' / 'generated_spectra_data'
     files = list(folder.glob('*.npz'))
     data_c = []
     seg_c = []
@@ -155,6 +157,10 @@ def eval_classification(target: str):
         y_pred = model.predict(test_data)
         y_proba = model.predict_proba(test_data)
         report = classification_report(test_labels, y_pred, target_names=names, labels=labels, output_dict=True)
+        ConfusionMatrixDisplay.from_predictions(test_labels, y_pred=y_pred, labels=labels, display_labels=names, normalize="true")
+        plt.title(f"{stage}")
+        plt.tight_layout()
+        plt.savefig(str(settings.results_dir / 'rf' / f'rf_classifier_matrix_{stage}.svg'))
 
         results = pd.DataFrame(report)
         save_dir_path = settings.results_dir / 'rf'
