@@ -1,4 +1,5 @@
 {
+  "n_pixels": 5000,
   "organ_labels": [
     "bladder",
     "colon",

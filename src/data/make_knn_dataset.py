@@ -82,9 +82,10 @@ def get_organ_labels():
     return labels
 
 
-def generate_dataset(nr_neighbours: int, nr_pixels: int):
+def generate_dataset(nr_neighbours: int):
     dataset_iterator = get_dataset_iterator()
     labels = get_organ_labels()
+    nr_pixels = labels['nr_pixels']
     splits = split_dataset(iterator=dataset_iterator)
     # get fitted KNN models
     models = get_knn_models(nr_neighbours=nr_neighbours)
@@ -112,7 +113,6 @@ def generate_dataset(nr_neighbours: int, nr_pixels: int):
                     location_sample = np.random.choice(location_index, min(nr_organ_pixels, nr_pixels), replace=False)
                     organ_location_sampled = (organ_location[0][location_sample], organ_location[1][location_sample])
                     mask[organ_location_sampled] = 1
-                # mask = np.any(np.array([seg == i for i in organ_indexes]), axis=0)
             else:
                 continue
             mask = mask.astype(bool)
@@ -142,10 +142,9 @@ def generate_dataset(nr_neighbours: int, nr_pixels: int):
 @click.command()
 @click.option('--knn', is_flag=True, help="generate dataset using KNN")
 @click.option('--nr_neighbours', default=1, help="number of nearest neighbors")
-@click.option('--nr_pixels', default=5000, help="set number of sampled pixels per ")
-def main(knn: bool, nr_neighbours: int, nr_pixels: int):
+def main(knn: bool, nr_neighbours: int):
     if knn:
-        generate_dataset(nr_neighbours=nr_neighbours, nr_pixels=nr_pixels)
+        generate_dataset(nr_neighbours=nr_neighbours)
 
 
 if __name__ == '__main__':

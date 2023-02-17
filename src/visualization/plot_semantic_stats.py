@@ -30,8 +30,8 @@ def plot_organ_statistics():
         mapping = settings.mapping
         for p in tqdm(paths, desc=k):
             seg = p.read_segmentation()
-            organ_id = [i for i in np.unique(seg) if mapping.index_to_name(i) in labels["organ_labels"]]
-            organs = [mapping.index_to_name(i) for i in organ_id]
+            organ_id = [i for i in np.unique(seg) if mapping[str(i)] in labels["organ_labels"]]
+            organs = [mapping[str(i)] for i in organ_id]
             spectra_count = [(seg == i).sum() for i in organ_id]
             results['organ'] += organs
             results['spectra_count'] += spectra_count
@@ -40,7 +40,7 @@ def plot_organ_statistics():
             results['name'] += [p.image_name() for _ in organs]
     results = pd.DataFrame(results)
     results_count = results.groupby(['organ', 'subject', 'split', 'name'], as_index=False).sum()
-    results_count['spectra_trimmed'] = [min(i, 5000) for i in results_count.spectra_count]
+    results_count['spectra_trimmed'] = [min(i, labels['n_pixels']) for i in results_count.spectra_count]
     fig = px.bar(data_frame=results_count,
                  x='split',
                  y='spectra_trimmed',
@@ -60,7 +60,7 @@ def plot_organ_statistics():
 
 
 @click.command()
-@click.option('--describe', type=bool, help="plot the organ distribution for each pig on each datatest split")
+@click.option('--describe', is_flag=True, help="plot the organ distribution for each pig on each datatest split")
 def main(describe: bool):
     if describe:
         plot_organ_statistics()

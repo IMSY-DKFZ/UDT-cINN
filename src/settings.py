@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 here = Path(__file__).parent
 
+
 def unify_path(path: Union[Path, str]) -> Path:
     """
     Tries to bring some consistency to paths:
