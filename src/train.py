@@ -51,7 +51,7 @@ config["data_base_path"] = DATA_BASE_PATH
 parser = DomainAdaptationParser(config=config)
 config = parser.get_new_config()
 
-pl.seed_everything(config.seed + 1)
+pl.seed_everything(config.seed)
 
 data_module = get_data_module(experiment_name=EXPERIMENT_NAME)
 enable_test_data = False
@@ -73,6 +73,8 @@ trainer = pl.trainer.Trainer(accelerator='gpu', devices=1, max_epochs=config.epo
                              gradient_clip_val=0.1, gradient_clip_algorithm="value",
                              deterministic=False)
 trainer.fit(model, datamodule=data_module)
+
+# trainer.predict(model, data_module.val_dataloader())
 
 if enable_test_data and config.get("test_run"):
     with test_data_manager(data_module):

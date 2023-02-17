@@ -68,7 +68,8 @@ if __name__ == "__main__":
 
                 sns.jointplot(data=pca_df, x="PCA component 1", y="PCA component 2", hue="data_type",
                               kind="kde", fill=True,
-                              alpha=0.4, marginal_kws={'common_norm': False})
+                              alpha=0.4, marginal_kws={'common_norm': False},
+                              palette="brg_r", levels=10)
                 plt.suptitle(f"{vessel} PCA components")
                 plt.tight_layout()
                 plt.xlim(-0.3, 0.3)

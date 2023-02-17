@@ -11,7 +11,7 @@ ndim_x: 16
 
 
 test_run: False
-epochs: 300
+epochs: 700
 seed: 42
 
 batch_size: 10000
@@ -23,8 +23,8 @@ adversarial_training: 1
 gan_weight: 1
 ml_weight: 1
 recon_criterion: mse        # mse or abs
-noise_aug: 1
-noise_aug_level: 0.5
+noise_aug: True
+noise_aug_level: 0.1
 normalization: standardize    # min_max or standardize
 instant_downsampling: False
 weight_decay: 0.0001           # weight decay
