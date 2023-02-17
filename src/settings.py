@@ -34,12 +34,12 @@ if dotenv_path.exists():
     load_dotenv(dotenv_path=dotenv_path)
 
 # Set Path variables
-intermediates_dir = unify_path(os.getenv('PATH_MICCAI_23_INTERMEDIATES'))
-results_dir = unify_path(Path(os.getenv('PATH_MICCAI_23_PROJECT')) / 'results')
-figures_dir = unify_path(Path(os.getenv('PATH_MICCAI_23_PROJECT')) / 'figures')
+intermediates_dir = unify_path(os.getenv('PATH_MICCAI_23_INTERMEDIATES') or '')
+results_dir = unify_path(Path(os.getenv('PATH_MICCAI_23_PROJECT') or '') / 'results')
+figures_dir = unify_path(Path(os.getenv('PATH_MICCAI_23_PROJECT') or '') / 'figures')
 tivita_cam_filters_file = intermediates_dir / 'optics' / 'artificial_tivita_camera_normal_20nm.csv'
 tivita_irradiance = intermediates_dir / 'optics' / 'tivita_relative_irradiance_2019_04_05.txt'
-tivita_semantic = unify_path(os.getenv('PATH_MICCAI_23_SEMANTIC_DATASET'))
+tivita_semantic = unify_path(os.getenv('PATH_MICCAI_23_SEMANTIC_DATASET') or '')
 
 
 # load pre-defined organ mapping
