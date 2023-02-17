@@ -17,7 +17,7 @@ matplotlib.use('Agg')
 cudnn.benchmark = True
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.deterministic = True
-torch.set_float32_matmul_precision("high")
+# torch.set_float32_matmul_precision("high")
 
 
 try:
@@ -74,7 +74,7 @@ trainer = pl.trainer.Trainer(accelerator='gpu', devices=1, max_epochs=config.epo
                              deterministic=False)
 trainer.fit(model, datamodule=data_module)
 
-if enable_test_data:
+if enable_test_data and config.get("test_run"):
     with test_data_manager(data_module):
         trainer.test(model, datamodule=data_module)
 else:
