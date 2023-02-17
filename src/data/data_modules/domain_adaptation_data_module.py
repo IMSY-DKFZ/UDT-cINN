@@ -51,6 +51,8 @@ class DomainAdaptationDataModule(pl.LightningDataModule):
         self.training_data = DomainAdaptationDataset(root_a=os.path.join(self.data_dir_a, "training/*.np*"),
                                                      root_b=os.path.join(self.data_dir_b, "training/*.np*"),
                                                      experiment_config=self.exp_config,
+                                                     noise_aug=self.exp_config.noise_aug,
+                                                     noise_std=self.exp_config.noise_aug_level
                                                      )
         self.validation_data = DomainAdaptationDataset(root_a=os.path.join(self.data_dir_a, "validation/*.np*"),
                                                        root_b=os.path.join(self.data_dir_b, "validation/*.np*"),
