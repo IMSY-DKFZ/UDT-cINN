@@ -89,10 +89,10 @@ def plot_semantic_spectra():
     #                                                                        as_index=False).reflectance.median()
     train_adapted_agg = data.get('train_synthetic_adapted').copy()
     train_agg['dataset'] = 'real'
-    train_sampled_agg['dataset'] = 'simulated_sampled'
-    train_adapted_agg['dataset'] = 'simulated_adapted'
+    train_sampled_agg['dataset'] = 'simulated'
+    # train_adapted_agg['dataset'] = 'simulated_adapted'
 
-    df = pd.concat([train_agg, train_sampled_agg, train_adapted_agg, inn_results], ignore_index=True, sort=True, axis=0)
+    df = pd.concat([train_agg, train_sampled_agg, inn_results], ignore_index=True, sort=True, axis=0)
 
     sns.set_context('talk')
     n_classes = len(df.organ.unique())
