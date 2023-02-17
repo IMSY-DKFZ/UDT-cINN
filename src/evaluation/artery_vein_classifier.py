@@ -1,4 +1,5 @@
 import click
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import joblib
@@ -6,14 +7,14 @@ import os
 import glob
 from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import confusion_matrix, classification_report, ConfusionMatrixDisplay
 from tqdm import tqdm
 
 from src import settings
 from src.utils.gather_pa_spectra_from_dataset import calculate_mean_spectrum
 
 here = Path(__file__)
-np.random.seed(42)
+np.random.seed(141)
 
 
 def load_data():
@@ -59,7 +60,7 @@ def load_data():
             value["vein_spectra_all"]
         ])
 
-        indices = np.arange(0, len(labels))
+        indices = np.arange(len(labels))
         np.random.shuffle(indices)
 
         spectra, labels = spectra[indices], labels[indices]
@@ -70,10 +71,7 @@ def load_data():
                               x_simulated=datasets["sim_spectra"][0], y_simulated=datasets["sim_spectra"][1],
                               x_gan_cinn=datasets["gan_cinn_spectra"][0], y_gan_cinn=datasets["gan_cinn_spectra"][1],
                               x_unit=datasets["unit_spectra"][0], y_unit=datasets["unit_spectra"][1]),
-                   test=dict(x_real=datasets["val_real_spectra"][0], y_real=datasets["val_real_spectra"][1]))
-
-    for key, value in results["train"].items():
-        print(key, len(value))
+                   test=dict(x_real=datasets["test_real_spectra"][0], y_real=datasets["test_real_spectra"][1]))
 
     return results
 
@@ -107,6 +105,11 @@ def eval_classification():
         y_pred = model.predict(test_data)
         y_proba = model.predict_proba(test_data)
         report = classification_report(test_labels, y_pred, target_names=names, labels=labels, output_dict=True)
+        print(report)
+        ConfusionMatrixDisplay.from_predictions(test_labels, y_pred=y_pred, labels=labels, display_labels=names, normalize="true")
+        plt.title(f"{stage}")
+        plt.tight_layout()
+        plt.show()
 
         results = pd.DataFrame(report)
         save_dir_path = settings.results_dir / 'rf_pa'
