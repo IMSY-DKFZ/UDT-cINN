@@ -9,7 +9,7 @@ sc_weight: 0.1
 
 # optimization options
 
-batch_size: 3                 # batch size
+batch_size: 10000                 # batch size
 weight_decay: 0.0001           # weight decay
 beta1: 0.9                    # Adam parameter
 beta2: 0.999                  # Adam parameter
