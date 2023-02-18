@@ -1,10 +1,9 @@
-import numpy as np
 from omegaconf import DictConfig
 from src.trainers import DomainAdaptationTrainerBasePA
 import torch
 from src.models.discriminator import MultiScaleDiscriminator
 from src.models.vae import VariationalAutoEncoder
-from src.models.inn_subnets import subnet_conv, weight_init
+from src.models.inn_subnets import weight_init
 import matplotlib.pyplot as plt
 import os
 
