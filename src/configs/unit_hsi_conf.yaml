@@ -29,7 +29,7 @@ recon_criterion: mse
 noise_aug: True
 noise_aug_level: 0.1
 normalization: standardize
-condition: none
+condition: segmentation
 label_noise: True
 label_noise_level: 0.2
 
@@ -40,7 +40,7 @@ gen:
   activ: relu                 # activation function [relu/lrelu/prelu/selu/tanh]
   n_layers: 4                 # number of extraction layers
 dis:
-  dim: 256                     # number of filters in the bottommost layer
+  dim: 64                     # number of filters in the bottommost layer
   normalization: none                  # normalization layer [none/bn/in/ln]
   activation: lrelu                # activation function [relu/lrelu/prelu/selu/tanh]
   n_layer: 3                  # number of layers in D

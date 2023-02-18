@@ -42,7 +42,7 @@ gen:
   pad_type: reflect           # padding type [zero/reflect]
   reduce_dim: False
 dis:
-  dim: 256                     # number of filters in the bottommost layer
+  dim: 64                     # number of filters in the bottommost layer
   normalization: none                  # normalization layer [none/bn/in/ln]
   activation: lrelu                # activation function [relu/lrelu/prelu/selu/tanh]
   n_layer: 3                  # number of layers in D
