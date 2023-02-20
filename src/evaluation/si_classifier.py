@@ -7,6 +7,8 @@ import os
 from omegaconf import DictConfig
 from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix, classification_report, ConfusionMatrixDisplay, roc_auc_score, \
+    balanced_accuracy_score
 from sklearn.metrics import confusion_matrix, classification_report
 from tqdm import tqdm
 
@@ -43,9 +45,9 @@ def load_data(target: str = 'val'):
         shuffle=False,
         num_workers=1,
         normalization='standardize',
-        noise_aug=False,
-        noise_aug_level=None,
         data=dict(mean_a=None, std_a=None, mean_b=None, std_b=None),  # this is handled internally by the loader
+        noise_aug=False,
+        noise_aug_level=0
     )
     conf = DictConfig(conf)
     dm = SemanticDataModule(experiment_config=conf, target='sampled')
@@ -158,6 +160,9 @@ def eval_classification(target: str):
         y_pred = model.predict(test_data)
         y_proba = model.predict_proba(test_data)
         report = classification_report(test_labels, y_pred, target_names=names, labels=labels, output_dict=True)
+
+        print(f"balanced_accuracy_score {stage} {balanced_accuracy_score(y_true=test_labels, y_pred=y_pred)}")
+        print(f"roc_auc_score {stage} {roc_auc_score(y_true=test_labels, y_score=y_proba, multi_class='ovr')}")
 
         results = pd.DataFrame(report)
         save_dir_path = settings.results_dir / 'rf'
