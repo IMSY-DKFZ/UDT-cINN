@@ -82,7 +82,12 @@ def plot_confusion_matrix():
         matrix = data['matrix']
         labels = data['labels']
         names = [mapping.get(str(l)) for l in labels]
-        fig = px.imshow(matrix, text_auto='.2f', color_continuous_scale='Greens')
+        fig = px.imshow(matrix,
+                        text_auto='.2f',
+                        color_continuous_scale='Greens',
+                        zmin=0,
+                        zmax=1,
+                        )
         fig.update_layout(font=dict(size=16))
         axis_ticks = dict(
                 tickmode='array',
@@ -91,7 +96,13 @@ def plot_confusion_matrix():
             )
         fig.update_layout(
             xaxis=axis_ticks,
-            yaxis=axis_ticks
+            yaxis=axis_ticks,
+            coloraxis_colorbar=dict(
+                title="probability",
+                x=0.85,
+                ticks="outside",
+                ticksuffix="",
+            )
         )
         fig.write_html(settings.figures_dir / f'rf_confusion_matrix_{stage}.html')
         fig.write_image(settings.figures_dir / f'rf_confusion_matrix_{stage}.pdf')
