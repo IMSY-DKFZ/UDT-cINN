@@ -7,8 +7,7 @@ import os
 from omegaconf import DictConfig
 from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix, classification_report, ConfusionMatrixDisplay
-import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, classification_report
 from tqdm import tqdm
 
 from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
@@ -44,6 +43,8 @@ def load_data(target: str = 'val'):
         shuffle=False,
         num_workers=1,
         normalization='standardize',
+        noise_aug=False,
+        noise_aug_level=None,
         data=dict(mean_a=None, std_a=None, mean_b=None, std_b=None),  # this is handled internally by the loader
     )
     conf = DictConfig(conf)
@@ -157,10 +158,6 @@ def eval_classification(target: str):
         y_pred = model.predict(test_data)
         y_proba = model.predict_proba(test_data)
         report = classification_report(test_labels, y_pred, target_names=names, labels=labels, output_dict=True)
-        ConfusionMatrixDisplay.from_predictions(test_labels, y_pred=y_pred, labels=labels, display_labels=names, normalize="true")
-        plt.title(f"{stage}")
-        plt.tight_layout()
-        plt.savefig(str(settings.results_dir / 'rf' / f'rf_classifier_matrix_{stage}.svg'))
 
         results = pd.DataFrame(report)
         save_dir_path = settings.results_dir / 'rf'
@@ -168,14 +165,14 @@ def eval_classification(target: str):
             os.makedirs(save_dir_path, exist_ok=True)
         results.to_csv(settings.results_dir / 'rf' / f'rf_classifier_report_{stage}.csv', index=True)
 
-        matrix = confusion_matrix(test_labels, y_pred, labels=labels, normalize='pred')
+        matrix = confusion_matrix(test_labels, y_pred, labels=labels, normalize='true')
         np.save(str(settings.results_dir / 'rf' / f'rf_classifier_train_x_{stage}.npy'), train_data)
         np.save(str(settings.results_dir / 'rf' / f'rf_classifier_train_y_{stage}.npy'), train_labels)
         np.save(str(settings.results_dir / 'rf' / f'rf_classifier_test_x_{stage}.npy'), test_data)
         np.save(str(settings.results_dir / 'rf' / f'rf_classifier_test_y_{stage}.npy'), test_labels)
         np.save(str(settings.results_dir / 'rf' / f'rf_classifier_test_y_pred_{stage}.npy'), y_pred)
         np.save(str(settings.results_dir / 'rf' / f'rf_classifier_test_y_proba_{stage}.npy'), y_proba)
-        np.save(str(settings.results_dir / 'rf' / f'rf_classifier_matrix_{stage}.npy'), matrix)
+        np.savez(str(settings.results_dir / 'rf' / f'rf_classifier_matrix_{stage}.npz'), matrix=matrix, labels=labels)
         joblib.dump(model, str(settings.results_dir / 'rf' / f'rf_classifier_{stage}.joblib'))
 
 

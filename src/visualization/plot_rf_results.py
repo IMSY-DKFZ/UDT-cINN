@@ -1,4 +1,5 @@
 import click
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objs as go
@@ -6,6 +7,7 @@ import re
 from functools import partial
 
 from src import settings
+from src.evaluation.si_classifier import get_label_mapping
 
 METRICS_PROCESSED = []
 
@@ -66,10 +68,41 @@ def plot_rf_results():
     results.to_csv(settings.figures_dir / 'rf_results.csv', index=False)
 
 
+def plot_confusion_matrix():
+    stages = [
+        'real',
+        'adapted',
+        'sampled',
+        'adapted_inn'
+    ]
+    mapping = get_label_mapping()
+    for stage in stages:
+        file = settings.results_dir / 'rf' / f"rf_classifier_matrix_{stage}.npz"
+        data = np.load(file)
+        matrix = data['matrix']
+        labels = data['labels']
+        names = [mapping.get(str(l)) for l in labels]
+        fig = px.imshow(matrix, text_auto='.2f', color_continuous_scale='Greens')
+        fig.update_layout(font=dict(size=16))
+        axis_ticks = dict(
+                tickmode='array',
+                tickvals=np.arange(0, len(names)),
+                ticktext=names
+            )
+        fig.update_layout(
+            xaxis=axis_ticks,
+            yaxis=axis_ticks
+        )
+        fig.write_html(settings.figures_dir / f'rf_confusion_matrix_{stage}.html')
+        fig.write_image(settings.figures_dir / f'rf_confusion_matrix_{stage}.pdf')
+        fig.write_image(settings.figures_dir / f'rf_confusion_matrix_{stage}.png')
+
+
 @click.command()
-@click.option('--rf', is_flag=True, help="todo")
+@click.option('--rf', is_flag=True, help="plot random forest classification results")
 def main(rf: bool):
     if rf:
+        plot_confusion_matrix()
         plot_rf_results()
 
 
