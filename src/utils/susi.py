@@ -8,6 +8,52 @@ from scipy.interpolate import interp1d
 from src.utils.camera import ImagingSystem, transform_reflectance
 
 
+class ExperimentResults:
+    def __init__(self, names: Union[List, None] = None):
+        if isinstance(names, str):
+            self.names = [names]
+            self._data = {n: [] for n in names}
+        elif isinstance(names, List):
+            self.names = names
+            self._data = {n: [] for n in names}
+        elif names is None:
+            self.names = []
+            self._data = {}
+        else:
+            raise ValueError(f"Unrecognized names: {names}")
+
+    def _init_name_in_data(self, name):
+        if name not in self._data:
+            self._data[name] = []
+
+    def get_names(self):
+        return self.names
+
+    def append(self, name, value):
+        if name not in self.names:
+            self.names.append(name)
+            self._init_name_in_data(name)
+        if isinstance(value, list):
+            self._data[name] += value
+        elif isinstance(value, float) or isinstance(value, int) or isinstance(value, str):
+            self._data[name].append(value)
+        elif isinstance(value, np.ndarray):
+            self._data[name] += list(value)
+        else:
+            raise ValueError(f"Can not interpret value: {value}")
+
+    def check_values(self):
+        lengths = {k: len(self._data[k]) for k in self._data}
+        if not np.all([lengths[k] for k in lengths]):
+            raise ValueError(f"Not all elements in self._data have same length: {lengths}")
+
+    def get_df(self):
+        if self.names is None:
+            return
+        results = pd.DataFrame(self._data)
+        return results
+
+
 class Msi:
     """ a multi spectral image stack consisting of:
 

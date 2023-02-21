@@ -106,25 +106,7 @@ def load_data(target: str = 'val'):
     data_c = data_c[index]
     seg_c = seg_c[index]
 
-    # load data adapted by integrating filter responses of optical system
-    # dm = SemanticDataModule(experiment_config=conf, target='adapted')
-    # dm.ignore_classes = IGNORE_CLASSES
-    # dm.setup(stage='eval')
-    # with EnableTestData(dm):
-    #     if target == 'test':
-    #         test_dl_adapted = dm.test_dataloader()
-    #     elif target == 'val':
-    #         test_dl_adapted = dm.val_dataloader()
-    #     else:
-    #         raise ValueError(f"unknown target {target}")
-
-    # data_d = test_dl_adapted.dataset.data_a
-    # data_d = ((data_d / torch.linalg.norm(data_d, ord=2, dim=1).unsqueeze(dim=1)) - test_dl_adapted.dataset.exp_config.data["mean_a"]) / test_dl_adapted.dataset.exp_config.data["std_a"]
-    # seg_d = test_dl_adapted.dataset.seg_data_a
-    # index = np.random.choice(np.arange(data_d.shape[0]), size=n_samples, replace=False)
-    # data_d = data_d[index]
-    # seg_d = seg_d[index]
-
+    # load UNIT results
     folder = settings.results_dir / 'unit' / 'generated_spectra_data'
     files = list(folder.glob('*.npz'))
     data_d = []

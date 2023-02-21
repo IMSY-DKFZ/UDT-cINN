@@ -6,7 +6,7 @@ import re
 
 def line(data_frame: pd.DataFrame, x, y, color, facet_col, **kwargs):
     categories = [c for c in [x, color, facet_col] if c is not None]
-    agg = data_frame.groupby(categories).agg(dict(reflectance=['median', 'std'])).reset_index()
+    agg = data_frame.groupby(categories).agg({y: ['median', 'std']}).reset_index()
     data = agg.copy()
     data.drop(y, axis=1, inplace=True, level=0)
     data[y] = agg[(y, 'median')]
