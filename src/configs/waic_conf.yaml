@@ -20,7 +20,7 @@ adversarial_training: 1
 gan_weight: 5
 ml_weight: 1
 recon_criterion: mse        # mse or abs
-noise_aug: 1
+noise_aug: false
 noise_aug_level: 0.5
 normalization: standardize
 instant_downsampling: True
