@@ -36,7 +36,7 @@ def plot_dots(tr, data: pd.DataFrame, fig: go.Figure):
 def plot_rf_results():
     stages = [
         'real',
-        'adapted',
+        'unit',
         'sampled',
         'adapted_inn'
     ]
@@ -72,7 +72,7 @@ def plot_rf_results():
 def plot_confusion_matrix():
     stages = [
         'real',
-        'adapted',
+        'unit',
         'sampled',
         'adapted_inn'
     ]

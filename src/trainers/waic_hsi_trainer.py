@@ -1,28 +1,29 @@
 import torch
+import torch.nn as nn
 import FrEIA.framework as Ff
 import FrEIA.modules as Fm
 from omegaconf import DictConfig
-from src.trainers import DomainAdaptationTrainerBasePA
-from src.models.inn_subnets import subnet_conv, subnet_res_net
-from src.models.multiscale_invertible_blocks import append_multi_scale_inn_blocks
+from src.trainers import DomainAdaptationTrainerBaseHSI
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 import numpy as np
 import os
+from src.models.inn_subnets import weight_init
 
 
-class WAICTrainer(DomainAdaptationTrainerBasePA):
+class WAICTrainerHSI(DomainAdaptationTrainerBaseHSI):
     def __init__(self, experiment_config: DictConfig):
         super().__init__(experiment_config=experiment_config)
 
+        self.n_blocks = self.config.n_blocks
         self.model = self.build_model()
 
     @staticmethod
-    def get_images(batch) -> torch.Tensor:
-        images = batch["image_b"]
-        images = images.cuda(non_blocking=True)
+    def get_spectra(batch) -> torch.Tensor:
+        spectra = batch["spectra_b"]
+        spectra = spectra.cuda(non_blocking=True)
 
-        return images
+        return spectra
 
     def forward(self, inp, *args, **kwargs):
 
@@ -37,22 +38,22 @@ class WAICTrainer(DomainAdaptationTrainerBasePA):
         """
         Computes the maximum likelihood loss.
 
-        :param z: Latent space representation of the input image.
-        :param jac: Jacobian of the input image.
+        :param z: Latent space representation of the input spectrum.
+        :param jac: Jacobian of the input spectrum.
         :return: Maximum likelihood loss,
         """
 
         p = torch.sum(z ** 2, dim=1)
         loss = 0.5 * p - jac
         loss = loss.mean()
-        ml_loss = loss / self.dimensionality
+        ml_loss = loss / self.dimensions
 
         return ml_loss
 
-    def maximum_likelihood_training(self, images, batch_dictionary: dict = None):
+    def maximum_likelihood_training(self, spectra, batch_dictionary: dict = None):
         """
 
-        :param images:
+        :param spectra:
         :param batch_dictionary:
         :return:
         """
@@ -60,7 +61,7 @@ class WAICTrainer(DomainAdaptationTrainerBasePA):
         if batch_dictionary is None:
             batch_dictionary = dict()
 
-        z, jac = self.forward(images)
+        z, jac = self.forward(spectra)
 
         ml_loss = self.maximum_likelihood_loss(z=z, jac=jac)
         batch_dictionary["ml_loss"] = ml_loss
@@ -68,12 +69,12 @@ class WAICTrainer(DomainAdaptationTrainerBasePA):
         return batch_dictionary, z, jac
 
     def inn_training_step(self, batch):
-        images = self.get_images(batch)
-        if images.size()[0] != self.config.batch_size:
+        spectra = self.get_spectra(batch)
+        if spectra.size()[0] != self.config.batch_size:
             print("Skipped batch because of uneven data_sizes")
             return None
 
-        batch_dictionary, z, jac = self.maximum_likelihood_training(images)
+        batch_dictionary, z, jac = self.maximum_likelihood_training(spectra)
 
         batch_dictionary = self.aggregate_total_loss(losses_dict=batch_dictionary)
         self.log_losses(losses_dict=batch_dictionary)
@@ -96,14 +97,25 @@ class WAICTrainer(DomainAdaptationTrainerBasePA):
     def configure_optimizers(self):
         return self.get_inn_optimizer()
 
-    def validation_step(self, batch, batch_idx):
-        plt.figure(figsize=(20, 5))
-        images = self.get_images(batch)
-        z, jac = self.forward(images)
-        images_inv, _ = self.forward(z, rev=True)
+    def subnet(self, ch_in, ch_out):
+        net = nn.Sequential(
+            nn.Linear(ch_in, self.config.n_hidden),
+            nn.ReLU(),
+            nn.Linear(self.config.n_hidden, ch_out),
+        )
 
-        images = images.cpu().numpy()
-        images_inv = images_inv.cpu().numpy()
+        net.apply(lambda m: weight_init(m, gain=1.))
+        return net
+
+    def validation_step(self, batch, batch_idx):
+
+        plt.figure(figsize=(20, 5))
+        spectra = self.get_spectra(batch)
+        z, jac = self.forward(spectra)
+        spectra_inv, _ = self.forward(z, rev=True)
+
+        spectra = spectra.cpu().numpy()
+        spectra_inv = spectra_inv.cpu().numpy()
         z = z.cpu().numpy()
         z_flat = z.flatten()
 
@@ -112,12 +124,14 @@ class WAICTrainer(DomainAdaptationTrainerBasePA):
         x_space = np.linspace(-3, 3, 500)
         y_z = norm.pdf(x_space, mean_z, std_z)
 
+        organ_label = batch["mapping"][str(int(batch["seg_b"].cpu()))]
+
         plt.subplot(1, 3, 1)
-        plt.title("Real Image")
-        plt.imshow(images[0, 0, :, :])
+        plt.title("Real spectrum")
+        plt.plot(spectra[0], color="green", linestyle="solid", label=f"{organ_label} spectrum")
         plt.subplot(1, 3, 2)
-        plt.title("Real Image inv")
-        plt.imshow(images_inv[0, 0, :, :])
+        plt.title("Real spectrum inv")
+        plt.plot(spectra_inv[0], color="green", linestyle="solid", label=f"{organ_label} spectrum")
         plt.subplot(1, 3, 3)
         plt.title("Latent Real Dist")
         plt.hist(z_flat, density=True, bins=50)
@@ -132,8 +146,8 @@ class WAICTrainer(DomainAdaptationTrainerBasePA):
         ml_loss_data_path = os.path.join(path, "ml_values")
         os.makedirs(ml_loss_data_path, exist_ok=True)
 
-        images = self.get_images(batch)
-        z, jac = self.forward(images)
+        spectra = self.get_spectra(batch)
+        z, jac = self.forward(spectra)
 
         ml_loss = self.maximum_likelihood_loss(z, jac)
 
@@ -142,33 +156,21 @@ class WAICTrainer(DomainAdaptationTrainerBasePA):
                  )
 
     def build_model(self):
-        model = Ff.SequenceINN(*self.dimensions)
-        append_multi_scale_inn_blocks(
-            model,
-            num_scales=self.config.downsampling_levels,
-            blocks_per_scale=[
-                self.config.high_res_conv,
-                self.config.middle_res_conv,
-                self.config.low_res_conv
-            ],
-            dimensions=self.dimensions,
-            subnets=[subnet_conv, subnet_conv, subnet_res_net],
-            clamping=self.config.clamping,
-            instant_downsampling=self.config.instant_downsampling
-        )
 
-        append_multi_scale_inn_blocks(
-            model,
-            num_scales=1,
-            blocks_per_scale=self.config.low_res_conv,
-            dimensions=self.dimensions,
-            subnets=subnet_res_net,
-            clamping=self.config.clamping
-        )
+        model = Ff.SequenceINN(self.dimensions)
 
-        model.append(Fm.Flatten)
+        for c_block in range(self.n_blocks):
+            model.append(
+                Fm.AllInOneBlock,
+                subnet_constructor=self.subnet,
+                affine_clamping=self.config.clamping,
+                global_affine_init=self.config.actnorm,
+                permute_soft=False,
+                learned_householder_permutation=self.config.n_reflections,
+                reverse_permutation=True,
+            )
 
         return model
 
-    def translate_image(self, image, input_domain="a"):
+    def translate_spectrum(self, spectrum, input_domain="a"):
         pass

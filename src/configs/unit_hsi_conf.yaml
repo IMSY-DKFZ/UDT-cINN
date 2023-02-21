@@ -1,4 +1,4 @@
-experiment_name: unit
+experiment_name: unit_hsi
 
 epochs: 400
 seed: 42

@@ -11,6 +11,7 @@ from src.trainers.gan_conditional_inn_trainer_hsi import GanCondinitionalDomainA
 from src.trainers.unit_trainer_hsi import UnitHSI
 from src.trainers.waic_trainer import WAICTrainer
 from src.trainers.cycle_gan_trainer import CycleGANTrainer
+from src.trainers.waic_hsi_trainer import WAICTrainerHSI
 
 
 def get_model(experiment_name: str):
@@ -24,6 +25,7 @@ def get_model(experiment_name: str):
         "unit": UNIT,
         "cycle_gan": CycleGANTrainer,
         "waic": WAICTrainer,
+        "waic_hsi": WAICTrainerHSI,
     }
 
     try:

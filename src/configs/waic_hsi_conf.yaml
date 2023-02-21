@@ -1,13 +1,16 @@
-experiment_name: waic
+experiment_name: waic_hsi
 
-high_res_conv: 2
-middle_res_conv: 2
-low_res_conv: 3
-downsampling_levels: 3
-downsampling_type: haar
-clamping: 1
+n_blocks: 40
+clamping: 1.0
+actnorm: .7
+n_reflections: 0
+n_hidden: 256
+ndim_x: 16
+
+
+test_run: False
 epochs: 400
-seed: 46
+seed: 42
 
 
 batch_size: 20
