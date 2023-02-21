@@ -8,7 +8,5 @@ def get_data_module(experiment_name: str):
     data_module = DomainAdaptationDataModule
     if "hsi" in experiment_name:
         data_module = SemanticDataModule, EnableTestData
-    if experiment_name == "waic":
-        data_module = WAICDataModule
 
     return data_module
