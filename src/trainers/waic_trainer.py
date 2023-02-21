@@ -19,7 +19,7 @@ class WAICTrainer(DomainAdaptationTrainerBasePA):
 
     @staticmethod
     def get_images(batch) -> torch.Tensor:
-        images = batch["image"]
+        images = batch["image_b"]
         images = images.cuda(non_blocking=True)
 
         return images
