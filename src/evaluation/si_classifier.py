@@ -84,7 +84,7 @@ def load_data(target: str = 'val'):
     seg_b = seg_b[index]
 
     # load synthetic data adapted with INNs
-    folder = settings.results_dir / 'inn' / 'generated_spectra_data'
+    folder = settings.results_dir / 'gan_cinn_hsi/2023_02_17_19_27_05/testing/generated_spectra_data'
     files = list(folder.glob('*.npz'))
     data_c = []
     seg_c = []

@@ -28,7 +28,8 @@ def plot_dots(tr, data: pd.DataFrame, fig: go.Figure):
         offsetgroup='boxes',
         fillcolor='silver',
         line=dict(color='black'),
-        opacity=0.5
+        opacity=0.5,
+        boxmean=True
     ))
 
 
