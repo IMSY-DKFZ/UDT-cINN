@@ -115,10 +115,7 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
         generated_spectrum_data_path = os.path.join(path, "generated_spectra_data")
         os.makedirs(generated_spectrum_data_path, exist_ok=True)
 
-        if self.config.condition == "segmentation":
-            (spectra_a, seg_a), spectra_b = self.get_spectra(batch)
-        else:
-            spectra_a, spectra_b = self.get_spectra(batch)
+        spectra_a, spectra_b = self.get_spectra(batch)
 
         spectra_ab = self.translate_spectrum(spectra_a, input_domain="a")
         spectra_ba = self.translate_spectrum(spectra_b, input_domain="b")

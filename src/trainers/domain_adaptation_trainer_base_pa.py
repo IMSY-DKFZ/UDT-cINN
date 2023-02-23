@@ -115,10 +115,7 @@ class DomainAdaptationTrainerBasePA(pl.LightningModule, ABC):
         generated_image_data_path = os.path.join(path, "generated_image_data")
         os.makedirs(generated_image_data_path, exist_ok=True)
 
-        if self.config.condition == "segmentation":
-            (images_a, seg_a), images_b = self.get_images(batch)
-        else:
-            images_a, images_b = self.get_images(batch)
+        images_a, images_b = self.get_images(batch)
         if len(images_a) == 5 or len(images_a) == 5:
             images_a, images_b = torch.squeeze(images_a, dim=0), torch.squeeze(images_b, dim=0)
 
