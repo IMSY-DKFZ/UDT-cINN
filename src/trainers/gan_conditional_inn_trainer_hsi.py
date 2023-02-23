@@ -25,7 +25,8 @@ class GanCondinitionalDomainAdaptationINNHSI(DAInnBaseHSI):
 
         dims = [batch_size, 2]
         condition = torch.zeros(*dims)
-        cond_noise = torch.rand(*dims) * 0.1
+        cond_noise = torch.rand(*dims)
+        cond_noise *= 0.1 if self.config.label_noise else 0
 
         if mode == "a":
             condition[:, 0] = 1 - cond_noise[:, 0]
