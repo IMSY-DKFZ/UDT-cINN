@@ -40,6 +40,8 @@ config["data_base_path"] = DATA_BASE_PATH
 
 parser = DomainAdaptationParser(config=config)
 config = parser.get_new_config()
+# config.label_noise = False
+# config.noise_aug = False
 
 pl.seed_everything(config.seed)
 
