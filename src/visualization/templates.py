@@ -3,10 +3,18 @@ import plotly as ply
 
 palette = ply.colors.qualitative.Plotly
 cmap_qualitative = {
-    'real': palette[3],
-    'simulated': '#127475',
+    'real': "#4363d8",
+    'simulated': "#911eb4",
     'cINN': palette[2],
-    'UNIT': palette[1]
+    'UNIT': "#e6194B",
+    'unit': "#e6194B",
+    'inn': palette[2]
+}
+
+cmap_qualitative_diff = {
+    'real - simulated': cmap_qualitative['simulated'],
+    'real - inn': cmap_qualitative['inn'],
+    'real - unit': cmap_qualitative['unit']
 }
 
 
