@@ -11,7 +11,7 @@ ndim_x: 16
 
 
 test_run: False
-epochs: 700
+epochs: 300
 seed: 42
 
 batch_size: 10000
@@ -33,6 +33,7 @@ beta2: 0.95
 condition: segmentation       # segmentation, domain, both
 label_noise: True
 label_noise_level: 0.05
+real_labels: constant
 
 data:
   data_set_name: real_sim_hsi     # real_sim, sim or mnist_usps

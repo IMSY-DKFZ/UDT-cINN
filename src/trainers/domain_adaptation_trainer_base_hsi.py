@@ -53,19 +53,30 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
             if len(one_hot_seg_shape) == 2:
                 one_hot_seg_shape.pop(1)
 
-            random_segmentation = np.random.choice(range(n_labels), size=one_hot_seg_shape)
+            if self.config.real_labels == "constant":
+                labels = torch.ones(size=one_hot_seg_shape) / n_labels
+            elif self.config.real_labels == "noise":
+                labels = torch.rand(size=one_hot_seg_shape)
 
-            labels = torch.from_numpy(random_segmentation).type(torch.float32)
+            # random_segmentation = np.random.choice(range(n_labels), size=one_hot_seg_shape)
+            #
+            # labels = torch.from_numpy(random_segmentation).type(torch.float32)
 
-        if self.config.label_noise:
-            one_hot_seg = torch.stack(
-                [(labels == label) + torch.rand_like(labels) * self.config.label_noise_level for label in
-                 range(n_labels)],
-                dim=1
-            )
-            one_hot_seg /= torch.linalg.norm(one_hot_seg, dim=1, keepdim=True, ord=1)
+            one_hot_seg = labels.type(torch.float32)
+
         else:
-            one_hot_seg = torch.stack([(labels == label) for label in range(n_labels)], dim=1)
+            if self.config.label_noise:
+                one_hot_seg = torch.stack(
+                    [(labels == label) + torch.rand_like(labels) * self.config.label_noise_level for label in
+                     range(n_labels)],
+                    dim=1
+                )
+            else:
+                one_hot_seg = torch.stack([(labels == label) for label in range(n_labels)], dim=1)
+
+        one_hot_seg /= torch.linalg.norm(one_hot_seg, dim=1, keepdim=True, ord=1)
+
+        assert one_hot_seg.size()[1] == n_labels
 
         return one_hot_seg
 

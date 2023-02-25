@@ -30,6 +30,7 @@ beta2: 0.999
 condition: segmentation       # segmentation, domain, both
 label_noise: True
 label_noise_level: 0.2
+real_labels: constant
 
 data:
   data_set_name: real_sim     # real_sim, sim or mnist_usps
