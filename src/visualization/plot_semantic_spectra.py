@@ -10,6 +10,7 @@ from sklearn.decomposition import PCA
 
 from src import settings
 from src.visualization.plot import line
+from src.visualization.templates import cmap_qualitative, cmap_qualitative_diff
 from src.utils.susi import ExperimentResults
 
 
@@ -123,10 +124,10 @@ def filter_data(df: pd.DataFrame):
 
 
 def plot_semantic_spectra():
-    inn_results = load_inn_results(folder='gan_cinn_hsi/2023_02_17_19_27_26/testing/generated_spectra_data')
+    inn_results = load_inn_results(folder='gan_cinn_hsi/2023_02_24_13_43_17/testing/generated_spectra_data')
     inn_agg = agg_data(inn_results)
     del inn_results
-    unit_results = load_inn_results(folder='generated_spectra_data_unit')
+    unit_results = load_inn_results(folder='unit/generated_spectra_data')
     unit_agg = agg_data(unit_results)
     del unit_results
 
@@ -149,6 +150,7 @@ def plot_semantic_spectra():
                   color="dataset",
                   facet_col="organ",
                   facet_col_wrap=min(n_classes, 5),
+                  color_discrete_map=cmap_qualitative
                   )
     fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
     fig.update_layout(font_size=16, font_family='Whitney Book')
@@ -160,13 +162,17 @@ def plot_semantic_spectra():
 
 def plot_knn_difference():
     # load and aggregate data
-    inn_results = load_inn_results(folder='gan_cinn_hsi/2023_02_17_19_27_26/testing/generated_spectra_data')
+    inn_results = load_inn_results(folder='gan_cinn_hsi/2023_02_24_13_43_17/testing/generated_spectra_data')
     inn_agg = agg_data(inn_results).groupby(['organ', 'wavelength'], as_index=True).reflectance.median()
+    del inn_results
     data = load_data(splits=['val', 'val_synthetic_sampled'])
     real_agg = agg_data(data.get('val')).groupby(['organ', 'wavelength'], as_index=True).reflectance.median()
     simulated_agg = agg_data(data.get('val_synthetic_sampled')).groupby(['organ', 'wavelength'],
                                                                         as_index=True).reflectance.median()
-    assert inn_agg.shape == real_agg.shape == simulated_agg.shape
+    unit_results = load_inn_results(folder='unit/generated_spectra_data')
+    unit_agg = agg_data(unit_results).groupby(['organ', 'wavelength'], as_index=True).reflectance.median()
+    del unit_results
+    assert inn_agg.shape == real_agg.shape == simulated_agg.shape == unit_agg.shape
     # compute differences
     diff_simulated = ((real_agg - simulated_agg).abs() / real_agg).reset_index().dropna()
     diff_simulated.rename({'reflectance': 'difference [%]'}, axis=1, inplace=True)
@@ -174,15 +180,20 @@ def plot_knn_difference():
     diff_inn = ((real_agg - inn_agg).abs() / real_agg).reset_index().dropna()
     diff_inn.rename({'reflectance': 'difference [%]'}, axis=1, inplace=True)
     diff_inn['source'] = "real - inn"
+    diff_unit = ((real_agg - unit_agg).abs() / real_agg).reset_index().dropna()
+    diff_unit.rename({'reflectance': 'difference [%]'}, axis=1, inplace=True)
+    diff_unit['source'] = "real - unit"
+
     n_classes = len(diff_simulated.organ.unique())
-    df = pd.concat([diff_inn, diff_simulated], sort=True, ignore_index=True, axis=0)
+    df = pd.concat([diff_inn, diff_simulated, diff_unit], sort=True, ignore_index=True, axis=0)
     # plot data
     fig = px.line(data_frame=df,
                   x="wavelength",
                   y="difference [%]",
                   color="source",
                   facet_col="organ",
-                  facet_col_wrap=min(n_classes, 5)
+                  facet_col_wrap=min(n_classes, 5),
+                  color_discrete_map=cmap_qualitative_diff
                   )
     fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
     fig.update_layout(font_size=16, font_family='Whitney Book')
@@ -192,9 +203,12 @@ def plot_knn_difference():
 
 
 def plot_pca():
-    inn_results = load_inn_results(folder='gan_cinn_hsi/2023_02_17_19_27_26/testing/generated_spectra_data')
+    inn_results = load_inn_results(folder='gan_cinn_hsi/2023_02_24_13_43_17/testing/generated_spectra_data')
     inn_agg = agg_data(inn_results)
     del inn_results
+    unit_results = load_inn_results(folder='unit/generated_spectra_data')
+    unit_agg = agg_data(unit_results)
+    del unit_results
     data = load_data(splits=['val', 'val_synthetic_sampled'])
     real_agg = filter_data(data.get('val'))
     simulated_agg = filter_data(data.get('val_synthetic_sampled'))
@@ -202,6 +216,7 @@ def plot_pca():
     real_agg['dataset'] = 'real'
     simulated_agg['dataset'] = 'simulated'
     inn_agg['dataset'] = 'inn'
+    unit_agg['dataset'] = 'unit'
     results = ExperimentResults()
     # train PCA on entire real data
     pca = PCA(n_components=2)
@@ -214,11 +229,14 @@ def plot_pca():
         tmp = real_agg[real_agg.organ == organ]
         compute_pcs(pca=pca, df=tmp, results=results, ids=(('dataset', 'real'), ('organ', organ)))
 
-        tmp = inn_agg[inn_agg.organ == organ]
-        compute_pcs(pca=pca, df=tmp, results=results, ids=(('dataset', 'inn'), ('organ', organ)))
-
         tmp = simulated_agg[simulated_agg.organ == organ]
         compute_pcs(pca=pca, df=tmp, results=results, ids=(('dataset', 'simulated'), ('organ', organ)))
+
+        tmp = unit_agg[unit_agg.organ == organ]
+        compute_pcs(pca=pca, df=tmp, results=results, ids=(('dataset', 'unit'), ('organ', organ)))
+
+        tmp = inn_agg[inn_agg.organ == organ]
+        compute_pcs(pca=pca, df=tmp, results=results, ids=(('dataset', 'inn'), ('organ', organ)))
 
     pc_df = results.get_df()
     explained_variance = (round(pca.explained_variance_ratio_[0] * 100), round(pca.explained_variance_ratio_[1] * 100))
@@ -227,18 +245,17 @@ def plot_pca():
                          axis=1)
 
     n_classes = len(real_agg.organ.unique())
-    fig = px.density_contour(data_frame=pc_df,
-                             x=f"PC 1 [{explained_variance[0]} %]",
-                             y=f"PC 2 [{explained_variance[1]} %]",
-                             color="dataset",
-                             facet_col="organ",
-                             histfunc="avg",
-                             histnorm="probability",
-                             marginal_x='histogram',
-                             marginal_y='histogram',
-                             range_x=(-0.2, 0.2),
-                             range_y=(-0.1, 0.1),
-                             facet_col_wrap=min(n_classes, 5))
+    fig = px.scatter(data_frame=pc_df,
+                     x=f"PC 1 [{explained_variance[0]} %]",
+                     y=f"PC 2 [{explained_variance[1]} %]",
+                     color="dataset",
+                     facet_col="organ",
+                     facet_col_wrap=min(n_classes, 5),
+                     color_discrete_map=cmap_qualitative
+                     )
+    fig.update_traces(opacity=0.5)
+    fig.update_xaxes(matches=None)
+    fig.update_yaxes(matches=None)
     fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
     fig.update_traces(ncontours=10, zmin=0.05, zmax=0.95, line=dict(width=2), selector=trace_selector_2d_contour)
     fig.update_traces(histnorm='probability', nbinsx=100, selector=trace_selector_histogram)

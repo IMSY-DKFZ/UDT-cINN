@@ -114,6 +114,8 @@ class SemanticDataset(Dataset):
         ind = torch.randperm(data_a.shape[0])
         data_a = data_a[ind, :]
         seg_data_a = seg_data_a[ind]
+        subjects_a = subjects_a[ind]
+        image_ids_a = image_ids_a[ind]
         return data_a, seg_data_a, data_b, seg_data_b, subjects_a, subjects_b, image_ids_a, image_ids_b
 
     @staticmethod
