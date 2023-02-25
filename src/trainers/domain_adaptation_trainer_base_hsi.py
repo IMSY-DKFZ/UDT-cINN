@@ -49,9 +49,7 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
 
     def get_label_conditions(self, labels, n_labels: int, labels_size=None):
         if isinstance(labels, int) and labels == 0:
-            one_hot_seg_shape = list(labels_size)
-            if len(one_hot_seg_shape) == 2:
-                one_hot_seg_shape.pop(1)
+            one_hot_seg_shape = [labels_size[0], n_labels]
 
             if self.config.real_labels == "constant":
                 labels = torch.ones(size=one_hot_seg_shape) / n_labels

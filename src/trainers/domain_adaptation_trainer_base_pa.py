@@ -68,7 +68,7 @@ class DomainAdaptationTrainerBasePA(pl.LightningModule, ABC):
             one_hot_seg_shape = list(labels_size)
             if len(one_hot_seg_shape) == 4:
                 one_hot_seg_shape.pop(1)
-
+            one_hot_seg_shape.insert(1, n_labels)
             if self.config.real_labels == "constant":
                 labels = torch.ones(size=one_hot_seg_shape) / n_labels
             elif self.config.real_labels == "noise":
