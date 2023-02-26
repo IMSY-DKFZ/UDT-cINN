@@ -1,4 +1,5 @@
 import plotly as ply
+from matplotlib.colors import LinearSegmentedColormap
 
 
 palette = ply.colors.qualitative.Plotly
@@ -19,8 +20,21 @@ cmap_qualitative_diff = {
 
 
 cmap_quantitative = {
-    'real': 'Purples',
-    'simulated': 'Tempo',
-    'cINN': 'Greens',
-    'UNIT': 'Reds'
+    'real': LinearSegmentedColormap.from_list("real", [(0, "white"), (1, cmap_qualitative["real"])]),
+    'simulated': LinearSegmentedColormap.from_list("simulated", [(0, "white"), (1, cmap_qualitative["simulated"])]),
+    'cINN': LinearSegmentedColormap.from_list("cINN", [(0, "white"), (1, cmap_qualitative["cINN"])]),
+    'UNIT': LinearSegmentedColormap.from_list("UNIT", [(0, "white"), (1, cmap_qualitative["UNIT"])])
 }
+
+if __name__ == "__main__":
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    cmaps = len(cmap_quantitative)
+    a = np.array([np.arange(0, 100) for i in range(10)])
+    plt.figure(figsize=(9, 6))
+    for i, (name, cmap) in enumerate(cmap_quantitative.items()):
+        plt.subplot(cmaps, 1, i + 1)
+        plt.title(name)
+        img = plt.imshow(a, cmap=cmap)
+    plt.show()
