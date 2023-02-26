@@ -6,10 +6,10 @@ import re
 
 def line(data_frame: pd.DataFrame, x, y, color, facet_col, **kwargs):
     categories = [c for c in [x, color, facet_col] if c is not None]
-    agg = data_frame.groupby(categories).agg({y: ['median', 'std']}).reset_index()
+    agg = data_frame.groupby(categories).agg({y: ['mean', 'std']}).reset_index()
     data = agg.copy()
     data.drop(y, axis=1, inplace=True, level=0)
-    data[y] = agg[(y, 'median')]
+    data[y] = agg[(y, 'mean')]
     data['sd'] = agg[(y, 'std')]
     fig = px.line(data_frame=data, x=x, y=y, color=color, facet_col=facet_col, **kwargs)
     for tr in fig.data:
