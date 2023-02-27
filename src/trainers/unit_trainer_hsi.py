@@ -246,8 +246,8 @@ class UnitHSI(DomainAdaptationTrainerBaseHSI):
 
         plt.subplot(2, 1, 1)
         plt.title("HSI Spectra")
-        organ_label_a = batch["mapping"][str(int(batch["seg_a"].cpu()))]
-        organ_label_b = batch["mapping"][str(int(batch["seg_b"].cpu()))]
+        organ_label_a = batch["mapping"][str(int(batch["seg_a"][0].cpu()))]
+        organ_label_b = batch["mapping"][str(int(batch["seg_b"][0].cpu()))]
         plt.plot(spectra_a, color="green", linestyle="solid", label=f"{organ_label_a} spectrum domain A")
         plt.plot(spectra_aba, color="green", linestyle="", marker="o", label="cycle reconstructed spectrum A")
         plt.plot(spectra_b, color="blue", linestyle="solid", label=f"{organ_label_b} spectrum domain B")
