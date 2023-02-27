@@ -170,53 +170,84 @@ class DAInnBaseHSI(DomainAdaptationTrainerBaseHSI, ABC):
         spectra_ba, _ = self.forward(z_b, mode="a", rev=True)
         spectra_bab, _ = self.forward(self.forward(spectra_ba, mode="a")[0], mode="b", rev=True)
 
-        spectra_a = spectra_a[0].cpu().numpy()[0] if isinstance(spectra_a, tuple) else spectra_a.cpu().numpy()[0]
-        spectra_b = spectra_b[0].cpu().numpy()[0] if isinstance(spectra_b, tuple) else spectra_b.cpu().numpy()[0]
+        ml_loss = self.maximum_likelihood_loss(z_a=z_a[0] if isinstance(z_a, tuple) else z_a,
+                                               jac_a=jac_a,
+                                               z_b=z_b[0] if isinstance(z_b, tuple) else z_b,
+                                               jac_b=jac_b)
+        ml_loss *= self.config.ml_weight
+        batch_dictionary = {"ml_loss": ml_loss}
 
-        spectra_ab = spectra_ab[0].cpu().numpy()[0] if isinstance(spectra_ab, tuple) else spectra_ab.cpu().numpy()[0]
-        spectra_ba = spectra_ba[0].cpu().numpy()[0] if isinstance(spectra_ba, tuple) else spectra_ba.cpu().numpy()[0]
+        gen_a_loss = self.discriminator_a.calc_gen_loss(spectra_ba[0] if isinstance(spectra_ba, tuple) else spectra_ba)
+        gen_b_loss = self.discriminator_b.calc_gen_loss(spectra_ab[0] if isinstance(spectra_ab, tuple) else spectra_ab)
 
-        spectra_bab = spectra_bab[0].cpu().numpy()[0] if isinstance(spectra_bab, tuple) else spectra_bab.cpu().numpy()[0]
-        spectra_aba = spectra_aba[0].cpu().numpy()[0] if isinstance(spectra_aba, tuple) else spectra_aba.cpu().numpy()[0]
+        gen_loss = gen_a_loss + gen_b_loss
 
-        z_a = z_a[0].cpu().numpy()[0] if isinstance(z_a, tuple) else z_a.cpu().numpy()[0]
-        z_b = z_b[0].cpu().numpy()[0] if isinstance(z_b, tuple) else z_b.cpu().numpy()[0]
+        gen_loss *= self.config.gan_weight
+        batch_dictionary["gen_loss"] = gen_loss
 
-        mean_z_a, std_z_a = norm.fit(z_a)
-        mean_z_b, std_z_b = norm.fit(z_b)
-        x_space = np.linspace(-3, 3, 500)
-        y_z_a = norm.pdf(x_space, mean_z_a, std_z_a)
-        y_z_b = norm.pdf(x_space, mean_z_b, std_z_b)
+        dis_a_loss = self.discriminator_a.calc_dis_loss(
+            spectra_ba[0].detach() if isinstance(spectra_ba, tuple) else spectra_ba.detach(),
+            spectra_a[0] if isinstance(spectra_a, tuple) else spectra_a)
 
-        minimum, maximum = np.min([spectra_a, spectra_b]), np.max([spectra_a, spectra_b])
-        minimum -= 0.2 * np.abs(minimum)
-        maximum += 0.2 * np.abs(maximum)
+        dis_b_loss = self.discriminator_b.calc_dis_loss(
+            spectra_ab[0].detach() if isinstance(spectra_ab, tuple) else spectra_ab.detach(),
+            spectra_b[0] if isinstance(spectra_b, tuple) else spectra_b)
 
-        plt.subplot(3, 1, 1)
-        plt.title("HSI Spectra")
-        organ_label_a = batch["mapping"][str(int(batch["seg_a"].cpu()))]
-        organ_label_b = batch["mapping"][str(int(batch["seg_b"].cpu()))]
-        plt.plot(spectra_a, color="green", linestyle="solid", label=f"{organ_label_a} spectrum domain A")
-        plt.plot(spectra_aba, color="green", linestyle="", marker="o", label="cycle reconstructed spectrum A")
-        plt.plot(spectra_b, color="blue", linestyle="solid", label=f"{organ_label_b} spectrum domain B")
-        plt.plot(spectra_bab, color="blue", linestyle="", marker="o", label="cycle reconstructed spectrum B")
-        plt.ylim(minimum, maximum)
-        plt.legend()
+        dis_loss = dis_a_loss + dis_b_loss
+        dis_loss *= self.config.gan_weight
 
-        plt.subplot(3, 1, 2)
-        plt.title("Domain adapted spectra")
-        plt.plot(spectra_ab, color="green", linestyle="dashed", label=f"{organ_label_a} spectrum domain AB")
-        plt.plot(spectra_ba, color="blue", linestyle="dashed", label=f"{organ_label_b} spectrum domain BA")
-        plt.ylim(minimum, maximum)
-        plt.legend()
+        batch_dictionary = {"dis_loss": dis_loss}
+        batch_dictionary = self.aggregate_total_loss(losses_dict=batch_dictionary, val_run=True)
+        self.log_losses(batch_dictionary)
 
-        plt.subplot(3, 1, 3)
-        plt.hist(z_a, color="green", density=True, bins=50, alpha=0.5, label="spectrum domain A")
-        plt.plot(x_space, y_z_a, color="green", label="mean={:1.2f}, std={:1.2f}".format(mean_z_a, std_z_a))
+        if batch_idx == 9:
+            spectra_a = spectra_a[0].cpu().numpy()[0] if isinstance(spectra_a, tuple) else spectra_a.cpu().numpy()[0]
+            spectra_b = spectra_b[0].cpu().numpy()[0] if isinstance(spectra_b, tuple) else spectra_b.cpu().numpy()[0]
 
-        plt.hist(z_b, color="blue", density=True, bins=50, alpha=0.5, label="spectrum domain B")
-        plt.plot(x_space, y_z_b, color="blue", label="mean={:1.2f}, std={:1.2f}".format(mean_z_b, std_z_b))
-        plt.legend()
+            spectra_ab = spectra_ab[0].cpu().numpy()[0] if isinstance(spectra_ab, tuple) else spectra_ab.cpu().numpy()[0]
+            spectra_ba = spectra_ba[0].cpu().numpy()[0] if isinstance(spectra_ba, tuple) else spectra_ba.cpu().numpy()[0]
 
-        plt.savefig(os.path.join(self.config.save_path, f"val_spectrum_{self.current_epoch}.png"))
-        plt.close()
+            spectra_bab = spectra_bab[0].cpu().numpy()[0] if isinstance(spectra_bab, tuple) else spectra_bab.cpu().numpy()[0]
+            spectra_aba = spectra_aba[0].cpu().numpy()[0] if isinstance(spectra_aba, tuple) else spectra_aba.cpu().numpy()[0]
+
+            z_a = z_a[0].cpu().numpy()[0] if isinstance(z_a, tuple) else z_a.cpu().numpy()[0]
+            z_b = z_b[0].cpu().numpy()[0] if isinstance(z_b, tuple) else z_b.cpu().numpy()[0]
+
+            mean_z_a, std_z_a = norm.fit(z_a)
+            mean_z_b, std_z_b = norm.fit(z_b)
+            x_space = np.linspace(-3, 3, 500)
+            y_z_a = norm.pdf(x_space, mean_z_a, std_z_a)
+            y_z_b = norm.pdf(x_space, mean_z_b, std_z_b)
+
+            minimum, maximum = np.min([spectra_a, spectra_b]), np.max([spectra_a, spectra_b])
+            minimum -= 0.2 * np.abs(minimum)
+            maximum += 0.2 * np.abs(maximum)
+
+            plt.subplot(3, 1, 1)
+            plt.title("HSI Spectra")
+            organ_label_a = batch["mapping"][str(int(batch["seg_a"][0].cpu()))]
+            organ_label_b = batch["mapping"][str(int(batch["seg_b"][0].cpu()))]
+            plt.plot(spectra_a, color="green", linestyle="solid", label=f"{organ_label_a} spectrum domain A")
+            plt.plot(spectra_aba, color="green", linestyle="", marker="o", label="cycle reconstructed spectrum A")
+            plt.plot(spectra_b, color="blue", linestyle="solid", label=f"{organ_label_b} spectrum domain B")
+            plt.plot(spectra_bab, color="blue", linestyle="", marker="o", label="cycle reconstructed spectrum B")
+            plt.ylim(minimum, maximum)
+            plt.legend()
+
+            plt.subplot(3, 1, 2)
+            plt.title("Domain adapted spectra")
+            plt.plot(spectra_ab, color="green", linestyle="dashed", label=f"{organ_label_a} spectrum domain AB")
+            plt.plot(spectra_ba, color="blue", linestyle="dashed", label=f"{organ_label_b} spectrum domain BA")
+            plt.ylim(minimum, maximum)
+            plt.legend()
+
+            plt.subplot(3, 1, 3)
+            plt.hist(z_a, color="green", density=True, bins=50, alpha=0.5, label="spectrum domain A")
+            plt.plot(x_space, y_z_a, color="green", label="mean={:1.2f}, std={:1.2f}".format(mean_z_a, std_z_a))
+
+            plt.hist(z_b, color="blue", density=True, bins=50, alpha=0.5, label="spectrum domain B")
+            plt.plot(x_space, y_z_b, color="blue", label="mean={:1.2f}, std={:1.2f}".format(mean_z_b, std_z_b))
+            plt.legend()
+
+            plt.savefig(os.path.join(self.config.save_path, f"val_spectrum_{self.current_epoch}.png"))
+            plt.close()
