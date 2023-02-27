@@ -175,7 +175,7 @@ class DAInnBaseHSI(DomainAdaptationTrainerBaseHSI, ABC):
                                                z_b=z_b[0] if isinstance(z_b, tuple) else z_b,
                                                jac_b=jac_b)
         ml_loss *= self.config.ml_weight
-        batch_dictionary = {"ml_loss": ml_loss}
+        batch_dictionary = {"val_ml_loss": ml_loss}
 
         gen_a_loss = self.discriminator_a.calc_gen_loss(spectra_ba[0] if isinstance(spectra_ba, tuple) else spectra_ba)
         gen_b_loss = self.discriminator_b.calc_gen_loss(spectra_ab[0] if isinstance(spectra_ab, tuple) else spectra_ab)
@@ -183,7 +183,7 @@ class DAInnBaseHSI(DomainAdaptationTrainerBaseHSI, ABC):
         gen_loss = gen_a_loss + gen_b_loss
 
         gen_loss *= self.config.gan_weight
-        batch_dictionary["gen_loss"] = gen_loss
+        batch_dictionary["val_gen_loss"] = gen_loss
 
         dis_a_loss = self.discriminator_a.calc_dis_loss(
             spectra_ba[0].detach() if isinstance(spectra_ba, tuple) else spectra_ba.detach(),
@@ -196,7 +196,7 @@ class DAInnBaseHSI(DomainAdaptationTrainerBaseHSI, ABC):
         dis_loss = dis_a_loss + dis_b_loss
         dis_loss *= self.config.gan_weight
 
-        batch_dictionary = {"dis_loss": dis_loss}
+        batch_dictionary = {"val_dis_loss": dis_loss}
         batch_dictionary = self.aggregate_total_loss(losses_dict=batch_dictionary, val_run=True)
         self.log_losses(batch_dictionary)
 

@@ -187,7 +187,7 @@ class DAInnBase(DomainAdaptationTrainerBasePA, ABC):
                                                z_b=z_b[0] if isinstance(z_b, tuple) else z_b,
                                                jac_b=jac_b)
         ml_loss *= self.config.ml_weight
-        batch_dictionary = {"ml_loss": ml_loss}
+        batch_dictionary = {"val_ml_loss": ml_loss}
 
         gen_a_loss = self.discriminator_a.calc_gen_loss(images_ba[0] if isinstance(images_ba, tuple) else images_ba)
         gen_b_loss = self.discriminator_b.calc_gen_loss(images_ab[0] if isinstance(images_ab, tuple) else images_ab)
@@ -195,7 +195,7 @@ class DAInnBase(DomainAdaptationTrainerBasePA, ABC):
         gen_loss = gen_a_loss + gen_b_loss
 
         gen_loss *= self.config.gan_weight
-        batch_dictionary["gen_loss"] = gen_loss
+        batch_dictionary["val_gen_loss"] = gen_loss
 
         dis_a_loss = self.discriminator_a.calc_dis_loss(
             images_ba[0].detach() if isinstance(images_ba, tuple) else images_ba.detach(),
@@ -208,7 +208,7 @@ class DAInnBase(DomainAdaptationTrainerBasePA, ABC):
         dis_loss = dis_a_loss + dis_b_loss
         dis_loss *= self.config.gan_weight
 
-        batch_dictionary = {"dis_loss": dis_loss}
+        batch_dictionary = {"val_dis_loss": dis_loss}
         batch_dictionary = self.aggregate_total_loss(losses_dict=batch_dictionary, val_run=True)
         self.log_losses(batch_dictionary)
 
