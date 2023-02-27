@@ -196,7 +196,7 @@ class DAInnBaseHSI(DomainAdaptationTrainerBaseHSI, ABC):
         dis_loss = dis_a_loss + dis_b_loss
         dis_loss *= self.config.gan_weight
 
-        batch_dictionary = {"val_dis_loss": dis_loss}
+        batch_dictionary["val_dis_loss"] = dis_loss
         batch_dictionary = self.aggregate_total_loss(losses_dict=batch_dictionary, val_run=True)
         self.log_losses(batch_dictionary)
 
