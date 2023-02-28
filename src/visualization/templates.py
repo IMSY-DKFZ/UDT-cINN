@@ -26,6 +26,15 @@ cmap_quantitative = {
     'UNIT': LinearSegmentedColormap.from_list("UNIT", [(0, "white"), (1, cmap_qualitative["UNIT"])])
 }
 
+
+cmap_quantitative_list = {
+    'real': [(0, "white"), (1, cmap_qualitative["real"])],
+    'simulated': [(0, "white"), (1, cmap_qualitative["simulated"])],
+    'cINN': [(0, "white"), (1, cmap_qualitative["cINN"])],
+    'UNIT': [(0, "white"), (1, cmap_qualitative["UNIT"])]
+}
+
+
 if __name__ == "__main__":
     import numpy as np
     import matplotlib.pyplot as plt

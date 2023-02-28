@@ -197,9 +197,10 @@ def plot_knn_difference():
                   )
     fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
     fig.update_layout(font_size=16, font_family='Whitney Book')
-    fig.write_html(settings.figures_dir / 'knn_diff.html')
-    fig.write_image(settings.figures_dir / 'knn_diff.pdf')
-    fig.write_image(settings.figures_dir / 'knn_diff.png')
+    fig.write_html(settings.figures_dir / 'semantic_diff.html')
+    fig.write_image(settings.figures_dir / 'semantic_diff.pdf')
+    fig.write_image(settings.figures_dir / 'semantic_diff.png')
+    df.to_csv(settings.figures_dir / 'semantic_diff.csv')
 
 
 def plot_pca():

@@ -7,9 +7,7 @@ import os
 from omegaconf import DictConfig
 from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix, classification_report, ConfusionMatrixDisplay, roc_auc_score, \
-    balanced_accuracy_score
-from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import confusion_matrix, classification_report, roc_auc_score, balanced_accuracy_score
 from tqdm import tqdm
 
 from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
@@ -20,14 +18,6 @@ np.random.seed(100)
 
 IGNORE_CLASSES = [
     'gallbladder',
-    # 'liver',
-    # 'fat',
-    # 'skin',
-    # 'stomach',
-    # 'peritoneum',
-    # 'colon',
-    # 'omentum',
-    # 'bladder'
 ]
 LABELS = [int(k) for k, i in settings.mapping.items() if i in settings.organ_labels and i not in IGNORE_CLASSES]
 
@@ -157,7 +147,7 @@ def eval_classification(target: str):
     for stage in tqdm(stages, desc="iterating stages"):
         train_data = data.get('train').get(f'x_{stage}')
         train_labels = data.get('train').get(f'y_{stage}')
-        model = get_model(train_data, train_labels, n_jobs=-1, n_estimators=10)
+        model = get_model(train_data, train_labels, n_jobs=-1, n_estimators=10, random_state=13)
         # compute score on test set of real data
         test_data = data.get('test').get('x_real')
         test_labels = data.get('test').get('y_real')

@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from src import settings
 from src.data.multi_layer_loader import SimulationDataLoader
+from src.data.utils import get_organ_labels
 
 here = Path(__file__).parent
 
@@ -74,12 +75,6 @@ def get_nearest_neighbors(im, models):
         idx = model.kneighbors(im, return_distance=False)
         results[k] = {i: x[idx[:, i]] for i in range(idx.shape[1])}
     return results
-
-
-def get_organ_labels():
-    with open(str(here / 'semantic_organ_labels.json'), 'rb') as handle:
-        labels = json.load(handle)
-    return labels
 
 
 def generate_dataset(nr_neighbours: int):
