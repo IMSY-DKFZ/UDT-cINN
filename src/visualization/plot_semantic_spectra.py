@@ -7,6 +7,7 @@ import plotly.express as px
 from sklearn.preprocessing import normalize
 import seaborn as sns
 from sklearn.decomposition import PCA
+import joblib
 
 from src import settings
 from src.visualization.plot import line
@@ -176,25 +177,29 @@ def plot_knn_difference():
     # compute differences
     diff_simulated = ((real_agg - simulated_agg).abs() / real_agg).reset_index().dropna()
     diff_simulated.rename({'reflectance': 'difference [%]'}, axis=1, inplace=True)
-    diff_simulated['source'] = 'real - simulated'
+    diff_simulated['data'] = 'real - simulated'
     diff_inn = ((real_agg - inn_agg).abs() / real_agg).reset_index().dropna()
     diff_inn.rename({'reflectance': 'difference [%]'}, axis=1, inplace=True)
-    diff_inn['source'] = "real - inn"
+    diff_inn['data'] = "real - inn"
     diff_unit = ((real_agg - unit_agg).abs() / real_agg).reset_index().dropna()
     diff_unit.rename({'reflectance': 'difference [%]'}, axis=1, inplace=True)
-    diff_unit['source'] = "real - unit"
+    diff_unit['data'] = "real - unit"
 
     n_classes = len(diff_simulated.organ.unique())
     df = pd.concat([diff_inn, diff_simulated, diff_unit], sort=True, ignore_index=True, axis=0)
     # plot data
-    fig = px.line(data_frame=df,
-                  x="wavelength",
-                  y="difference [%]",
-                  color="source",
-                  facet_col="organ",
-                  facet_col_wrap=min(n_classes, 5),
-                  color_discrete_map=cmap_qualitative_diff
-                  )
+    fig = px.box(data_frame=df,
+                 x="data",
+                 y="difference [%]",
+                 color="data",
+                 facet_col="organ",
+                 facet_col_wrap=min(n_classes, 5),
+                 color_discrete_map=cmap_qualitative_diff,
+                 template="plotly_white",
+                 category_orders=dict(data=['real - simulated', 'real - unit', 'real - inn']),
+                 facet_row_spacing=0.2,
+                 facet_col_spacing=0.05,
+                 )
     fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
     fig.update_layout(font_size=16, font_family='Whitney Book')
     fig.write_html(settings.figures_dir / 'semantic_diff.html')
@@ -264,6 +269,8 @@ def plot_pca():
     fig.write_html(settings.figures_dir / 'semantic_pca.html')
     fig.write_image(settings.figures_dir / 'semantic_pca.pdf')
     fig.write_image(settings.figures_dir / 'semantic_pca.png')
+    pc_df.to_csv(settings.figures_dir / 'semantic_pca.csv', index=False)
+    joblib.dump(pca, settings.results_dir / 'pca' / 'semantic_pca.joblib')
 
 
 def trace_selector_2d_contour(tr):
