@@ -12,21 +12,12 @@ from tqdm import tqdm
 
 from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
 from src import settings
+from src.data.utils import get_label_mapping, IGNORE_CLASSES
 
 here = Path(__file__)
 np.random.seed(100)
 
-IGNORE_CLASSES = [
-    'gallbladder',
-]
 LABELS = [int(k) for k, i in settings.mapping.items() if i in settings.organ_labels and i not in IGNORE_CLASSES]
-
-
-def get_label_mapping():
-    mapping = settings.mapping
-    organ_labels = settings.organ_labels
-    content = {k: i for k, i in mapping.items() if i in organ_labels and i not in IGNORE_CLASSES}
-    return content
 
 
 def load_data(target: str = 'val'):

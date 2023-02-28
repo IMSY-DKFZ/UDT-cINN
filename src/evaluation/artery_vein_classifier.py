@@ -124,7 +124,7 @@ def eval_classification():
         np.save(str(settings.results_dir / 'rf_pa' / f'rf_pa_classifier_test_y_{stage}.npy'), test_labels)
         np.save(str(settings.results_dir / 'rf_pa' / f'rf_pa_classifier_test_y_pred_{stage}.npy'), y_pred)
         np.save(str(settings.results_dir / 'rf_pa' / f'rf_pa_classifier_test_y_proba_{stage}.npy'), y_proba)
-        np.save(str(settings.results_dir / 'rf_pa' / f'rf_pa_classifier_matrix_{stage}.npy'), matrix)
+        np.savez(str(settings.results_dir / 'rf' / f'rf_classifier_matrix_{stage}.npz'), matrix=matrix, labels=labels)
         joblib.dump(model, str(settings.results_dir / 'rf_pa' / f'rf_pa_classifier_{stage}.joblib'))
 
 
