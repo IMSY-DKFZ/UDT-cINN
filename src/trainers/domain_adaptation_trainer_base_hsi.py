@@ -59,10 +59,16 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
                 labels = torch.ones(size=one_hot_seg_shape) / n_labels
             elif self.config.real_labels == "noise":
                 labels = torch.rand(size=one_hot_seg_shape)
-
-            # random_segmentation = np.random.choice(range(n_labels), size=one_hot_seg_shape)
-            #
-            # labels = torch.from_numpy(random_segmentation).type(torch.float32)
+            elif self.config.real_labels == "random_choice":
+                if len(one_hot_seg_shape) == 2:
+                    one_hot_seg_shape.pop(1)
+                random_segmentation = np.random.choice(range(n_labels), size=one_hot_seg_shape)
+                labels = torch.from_numpy(random_segmentation).type(torch.float32)
+                labels = torch.stack(
+                    [(labels == label) + torch.rand_like(labels) * self.config.label_noise_level for label in
+                     range(n_labels)],
+                    dim=1
+                )
 
             one_hot_seg = labels.type(torch.float32)
 
@@ -128,7 +134,10 @@ class DomainAdaptationTrainerBaseHSI(pl.LightningModule, ABC):
         generated_spectrum_data_path = os.path.join(path, "generated_spectra_data")
         os.makedirs(generated_spectrum_data_path, exist_ok=True)
 
-        spectra_a, spectra_b = self.get_spectra(batch)
+        if self.config.get("inference_like_real"):
+            (spectra_a, seg_a), spectra_b = self.get_spectra(batch)
+        else:
+            spectra_a, spectra_b = self.get_spectra(batch)
 
         spectra_ab = self.translate_spectrum(spectra_a, input_domain="a")
         spectra_ba = self.translate_spectrum(spectra_b, input_domain="b")
