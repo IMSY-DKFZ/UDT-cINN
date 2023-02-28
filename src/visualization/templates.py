@@ -9,7 +9,10 @@ cmap_qualitative = {
     'cINN': palette[2],
     'UNIT': "#e6194B",
     'unit': "#e6194B",
-    'inn': palette[2]
+    'inn': palette[2],
+    'real - cINN': palette[2],
+    'real - UNIT': "#e6194B",
+    'real - simulated': "#911eb4",
 }
 
 cmap_qualitative_diff = {
