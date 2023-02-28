@@ -77,10 +77,16 @@ class DomainAdaptationTrainerBasePA(pl.LightningModule, ABC):
                 labels = torch.ones(size=one_hot_seg_shape) / n_labels
             elif self.config.real_labels == "noise":
                 labels = torch.rand(size=one_hot_seg_shape)
-
-            # random_segmentation = np.random.choice(range(n_labels), size=one_hot_seg_shape)
-            #
-            # labels = torch.from_numpy(random_segmentation).type(torch.float32)
+            elif self.config.real_labels == "random_choice":
+                if len(one_hot_seg_shape) == 4:
+                    one_hot_seg_shape.pop(1)
+                random_segmentation = np.random.choice(range(n_labels), size=one_hot_seg_shape)
+                labels = torch.from_numpy(random_segmentation).type(torch.float32)
+                labels = torch.stack(
+                    [(labels == label) + torch.rand_like(labels) * self.config.label_noise_level for label in
+                     range(n_labels)],
+                    dim=1
+                )
 
             one_hot_seg = labels.type(torch.float32)
 
@@ -131,6 +137,9 @@ class DomainAdaptationTrainerBasePA(pl.LightningModule, ABC):
         os.makedirs(generated_image_data_path, exist_ok=True)
 
         images_a, images_b = self.get_images(batch)
+        if isinstance(images_a, tuple) and self.config.get("inference_like_real"):
+            images_a, seg_a = images_a
+
         if len(images_a) == 5 or len(images_a) == 5:
             images_a, images_b = torch.squeeze(images_a, dim=0), torch.squeeze(images_b, dim=0)
 
