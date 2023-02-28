@@ -199,6 +199,40 @@ class UnitHSI(DomainAdaptationTrainerBaseHSI):
         spectra_aba = self.gen_a.decode(latent_mean_ab_recon + latent_std_ab_recon)
         spectra_bab = self.gen_b.decode(latent_mean_ba_recon + latent_std_ba_recon)
 
+        recon_spectra_a_loss = self.recon_criterion(spectra_a_recon, spectra_a if not conditioning else spectra_a[0])
+        recon_spectra_b_loss = self.recon_criterion(spectra_b_recon, spectra_b)
+        loss_gen_recon_kl_a = self.compute_kl(latent_mean_a)
+        loss_gen_recon_kl_b = self.compute_kl(latent_mean_b)
+        loss_gen_cyc_x_a = self.recon_criterion(spectra_aba, spectra_a if not conditioning else spectra_a[0])
+        loss_gen_cyc_x_b = self.recon_criterion(spectra_bab, spectra_b)
+        loss_gen_recon_kl_cyc_aba = self.compute_kl(latent_mean_ab_recon)
+        loss_gen_recon_kl_cyc_bab = self.compute_kl(latent_mean_ba_recon)
+
+        gen_a_loss = self.dis_a.calc_gen_loss(spectra_ba)
+        gen_b_loss = self.dis_b.calc_gen_loss(spectra_ab)
+
+        gen_loss = self.config["gan_w"] * (gen_a_loss + gen_b_loss)
+        recon_loss = self.config["recon_x_w"] * (recon_spectra_a_loss + recon_spectra_b_loss)
+        cc_recon_loss = self.config['recon_x_cyc_w'] * (loss_gen_cyc_x_a + loss_gen_cyc_x_b)
+        kl_loss = self.config["recon_kl_w"] * (loss_gen_recon_kl_a + loss_gen_recon_kl_b)
+        cc_kl_loss = self.config['recon_kl_cyc_w'] * (loss_gen_recon_kl_cyc_aba + loss_gen_recon_kl_cyc_bab)
+
+        batch_dictionary = {"val_gen_loss": gen_loss,
+                            "val_recon_loss": recon_loss,
+                            "val_cc_recon_loss": cc_recon_loss,
+                            "val_kl_loss": kl_loss,
+                            "val_cc_kl_loss": cc_kl_loss
+                            }
+
+        loss_dis_a = self.dis_a.calc_dis_loss(spectra_ba.detach(), spectra_a if not conditioning else spectra_a[0])
+        loss_dis_b = self.dis_b.calc_dis_loss(spectra_ab.detach(), spectra_b)
+
+        loss_dis_total = self.config['gan_w'] * (loss_dis_a + loss_dis_b)
+        batch_dictionary["val_dis_loss"] = loss_dis_total
+
+        batch_dictionary = self.aggregate_total_loss(losses_dict=batch_dictionary, val_run=True)
+        self.log_losses(batch_dictionary)
+
         spectra_a = spectra_a.cpu().numpy()[0] if not conditioning else spectra_a[0].cpu().numpy()[0]
         spectra_b = spectra_b.cpu().numpy()[0]
         spectra_ab = spectra_ab.cpu().numpy()[0]
@@ -212,8 +246,8 @@ class UnitHSI(DomainAdaptationTrainerBaseHSI):
 
         plt.subplot(2, 1, 1)
         plt.title("HSI Spectra")
-        organ_label_a = batch["mapping"][str(int(batch["seg_a"].cpu()))]
-        organ_label_b = batch["mapping"][str(int(batch["seg_b"].cpu()))]
+        organ_label_a = batch["mapping"][str(int(batch["seg_a"][0].cpu()))]
+        organ_label_b = batch["mapping"][str(int(batch["seg_b"][0].cpu()))]
         plt.plot(spectra_a, color="green", linestyle="solid", label=f"{organ_label_a} spectrum domain A")
         plt.plot(spectra_aba, color="green", linestyle="", marker="o", label="cycle reconstructed spectrum A")
         plt.plot(spectra_b, color="blue", linestyle="solid", label=f"{organ_label_b} spectrum domain B")

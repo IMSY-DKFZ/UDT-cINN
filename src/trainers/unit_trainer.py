@@ -201,6 +201,40 @@ class UNIT(DomainAdaptationTrainerBasePA):
         images_aba = self.gen_a.decode(latent_mean_ab_recon + latent_std_ab_recon)
         images_bab = self.gen_b.decode(latent_mean_ba_recon + latent_std_ba_recon)
 
+        recon_images_a_loss = self.recon_criterion(images_a_recon, images_a if not conditioning else images_a[0])
+        recon_images_b_loss = self.recon_criterion(images_b_recon, images_b)
+        loss_gen_recon_kl_a = self.compute_kl(latent_mean_a)
+        loss_gen_recon_kl_b = self.compute_kl(latent_mean_b)
+        loss_gen_cyc_x_a = self.recon_criterion(images_aba, images_a if not conditioning else images_a[0])
+        loss_gen_cyc_x_b = self.recon_criterion(images_bab, images_b)
+        loss_gen_recon_kl_cyc_aba = self.compute_kl(latent_mean_ab_recon)
+        loss_gen_recon_kl_cyc_bab = self.compute_kl(latent_mean_ba_recon)
+
+        gen_a_loss = self.dis_a.calc_gen_loss(images_ba)
+        gen_b_loss = self.dis_b.calc_gen_loss(images_ab)
+
+        gen_loss = self.config["gan_w"] * (gen_a_loss + gen_b_loss)
+        recon_loss = self.config["recon_x_w"] * (recon_images_a_loss + recon_images_b_loss)
+        cc_recon_loss = self.config['recon_x_cyc_w'] * (loss_gen_cyc_x_a + loss_gen_cyc_x_b)
+        kl_loss = self.config["recon_kl_w"] * (loss_gen_recon_kl_a + loss_gen_recon_kl_b)
+        cc_kl_loss = self.config['recon_kl_cyc_w'] * (loss_gen_recon_kl_cyc_aba + loss_gen_recon_kl_cyc_bab)
+
+        batch_dictionary = {"val_gen_loss": gen_loss,
+                            "val_recon_loss": recon_loss,
+                            "val_cc_recon_loss": cc_recon_loss,
+                            "val_kl_loss": kl_loss,
+                            "val_cc_kl_loss": cc_kl_loss
+                            }
+
+        loss_dis_a = self.dis_a.calc_dis_loss(images_ba.detach(), images_a if not conditioning else images_a[0])
+        loss_dis_b = self.dis_b.calc_dis_loss(images_ab.detach(), images_b)
+
+        loss_dis_total = self.config['gan_w'] * (loss_dis_a + loss_dis_b)
+        batch_dictionary["val_dis_loss"] = loss_dis_total
+
+        batch_dictionary = self.aggregate_total_loss(losses_dict=batch_dictionary, val_run=True)
+        self.log_losses(batch_dictionary)
+
         images_a = images_a.cpu().numpy() if not conditioning else images_a[0].cpu().numpy()
         images_b = images_b.cpu().numpy()
         images_ab = images_ab.cpu().numpy()

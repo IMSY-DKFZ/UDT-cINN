@@ -23,12 +23,16 @@ class DomainAdaptationTrainerBasePA(pl.LightningModule, ABC):
         return self._get_name()
 
     @staticmethod
-    def aggregate_total_loss(losses_dict: Dict):
+    def aggregate_total_loss(losses_dict: Dict, val_run: bool = False):
+        if val_run:
+            total_loss_key = "val_loss"
+        else:
+            total_loss_key = "loss"
         total_loss = 0
         for loss_name, loss_value in losses_dict.items():
             total_loss += loss_value
             losses_dict[loss_name] = loss_value.detach()
-        losses_dict["loss"] = total_loss
+        losses_dict[total_loss_key] = total_loss
         return losses_dict
 
     def log_losses(self, losses_dict: Dict):

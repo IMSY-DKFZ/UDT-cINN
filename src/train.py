@@ -33,7 +33,7 @@ if run_by_bash:
     PYTHON_PATH = os.environ["PYTHON_PATH"]
 
 else:
-    EXPERIMENT_NAME = "waic_hsi"
+    EXPERIMENT_NAME = "gan_cinn"
     SAVE_DATA_PATH = "/home/kris/Work/Data/DA_results"
     DATA_BASE_PATH = "/home/kris/Work/Data/domain_adaptation_simulations"
     PYTHON_PATH = "/home/kris/Work/Repositories/miccai23/src"
@@ -69,7 +69,7 @@ logger.log_hyperparams(config)
 trainer = pl.trainer.Trainer(accelerator='gpu', devices=1, max_epochs=config.epochs, logger=logger,
                              callbacks=[ModelCheckpoint(save_top_k=-1, every_n_epochs=50)],
                              num_sanity_val_steps=0, check_val_every_n_epoch=1,
-                             limit_val_batches=1,
+                             limit_val_batches=10,
                              gradient_clip_val=0.1, gradient_clip_algorithm="value",
                              deterministic=False)
 trainer.fit(model, datamodule=data_module)
