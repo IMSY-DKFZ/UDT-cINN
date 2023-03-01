@@ -24,7 +24,7 @@ gan_weight: 1
 ml_weight: 1
 recon_criterion: mse        # mse or abs
 noise_aug: True
-noise_aug_level: 0.15
+noise_aug_level: 0.2
 normalization: standardize    # min_max or standardize
 instant_downsampling: False
 weight_decay: 0.0001           # weight decay
