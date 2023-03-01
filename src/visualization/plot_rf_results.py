@@ -7,7 +7,7 @@ import re
 from functools import partial
 
 from src import settings
-from src.evaluation.si_classifier import get_label_mapping
+from src.data.utils import get_label_mapping
 
 METRICS_PROCESSED = []
 

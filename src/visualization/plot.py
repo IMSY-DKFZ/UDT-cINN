@@ -4,7 +4,7 @@ import pandas as pd
 import re
 
 
-def line(data_frame: pd.DataFrame, x, y, color, facet_col, **kwargs):
+def line(data_frame: pd.DataFrame, x, y, color, facet_col=None, **kwargs):
     categories = [c for c in [x, color, facet_col] if c is not None]
     agg = data_frame.groupby(categories).agg({y: ['mean', 'std']}).reset_index()
     data = agg.copy()
@@ -15,8 +15,11 @@ def line(data_frame: pd.DataFrame, x, y, color, facet_col, **kwargs):
     for tr in fig.data:
         tr: go.Scattergl
         c = re.findall(f'{color}=(.*?)<', tr.hovertemplate)[0]
-        f = re.findall(f'{facet_col}=(.*?)<', tr.hovertemplate)[0]
-        sd = data.loc[(data[color] == c) & (data[facet_col] == f), :]['sd'].values
+        if facet_col:
+            f = re.findall(f'{facet_col}=(.*?)<', tr.hovertemplate)[0]
+            sd = data.loc[(data[color] == c) & (data[facet_col] == f), :]['sd'].values
+        else:
+            sd = data.loc[data[color] == c, :]['sd'].values
         y_high = tr.y + (sd)
         y_low = tr.y - (sd)
         band = go.Scatter(
