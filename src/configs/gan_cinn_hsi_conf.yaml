@@ -11,7 +11,7 @@ ndim_x: 16
 
 
 test_run: False
-epochs: 400
+epochs: 300
 seed: 42
 
 batch_size: 10000
@@ -23,8 +23,8 @@ adversarial_training: 1
 gan_weight: 1
 ml_weight: 1
 recon_criterion: mse        # mse or abs
-noise_aug: False
-noise_aug_level: 0.1
+noise_aug: True
+noise_aug_level: 0.15
 normalization: standardize    # min_max or standardize
 instant_downsampling: False
 weight_decay: 0.0001           # weight decay
@@ -32,8 +32,8 @@ beta1: 0.9                    # Adam parameter
 beta2: 0.95
 condition: segmentation       # segmentation, domain, both
 label_noise: True
-label_noise_level: 0.05
-real_labels: constant
+label_noise_level: 0.5
+real_labels: random_choice
 
 data:
   data_set_name: real_sim_hsi     # real_sim, sim or mnist_usps
