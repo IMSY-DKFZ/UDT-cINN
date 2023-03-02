@@ -13,6 +13,67 @@ from src.data.data_modules.semantic_module import SemanticDataModule, EnableTest
 this_path = Path(__file__)
 
 
+def find_unique_rows(x: torch.Tensor, desc: str = "") -> torch.Tensor:
+    target = x[0]
+    unique_rows = []
+    pbar = tqdm(desc=desc, total=len(x))
+    while x.numel():
+        diff = x - target
+        index_inv = torch.where(~torch.all(diff == 0, dim=1))
+        del diff
+        x = x[index_inv]
+        torch.cuda.empty_cache()
+        unique_rows.append(target.cpu())
+        if x.numel():
+            target = x[0]
+            pbar.update(1)
+            pbar.total = len(x)
+            pbar.refresh()
+    unique = torch.vstack(unique_rows)
+    return unique
+
+
+class TestSemanticUnique(unittest.TestCase):
+    def setUp(self) -> None:
+        self.base_folder = settings.intermediates_dir / 'semantic_unique'
+        self.config = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, normalization="standardize",
+                                      data=dict(mean_a=None, mean_b=None, std=None, std_b=None),
+                                      noise_aug=False, noise_aug_level=None))
+        self.dm = SemanticDataModule(experiment_config=self.config, target_dataset='semantic_v2', target='unique')
+        self.dm.setup(stage='train')
+
+    def test_train_dl(self):
+        dl = self.dm.train_dataloader()
+        x = dl.dataset.data_a
+        y = dl.dataset.seg_data_a
+        for i in np.unique(y):
+            print(i, y[y == i].size())
+
+        x_unique_true = find_unique_rows(x.cuda())
+        assert x_unique_true.shape == x.shape
+
+    def test_val_dl(self):
+        dl = self.dm.val_dataloader()
+        x = dl.dataset.data_a
+        y = dl.dataset.seg_data_a
+        for i in np.unique(y):
+            print(i, y[y == i].size())
+
+        x_unique_true = find_unique_rows(x.cuda())
+        assert x_unique_true.shape == x.shape
+
+    def test_test_dl(self):
+        with EnableTestData(self.dm):
+            dl = self.dm.test_dataloader()
+        x = dl.dataset.data_a
+        y = dl.dataset.seg_data_a
+        for i in np.unique(y):
+            print(i, y[y == i].size())
+
+        x_unique_true = find_unique_rows(x.cuda())
+        assert x_unique_true.shape == x.shape
+
+
 class TestAdaptToCamera(unittest.TestCase):
     def setUp(self) -> None:
         pass

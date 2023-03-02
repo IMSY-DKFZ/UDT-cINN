@@ -14,6 +14,8 @@ from src.data.utils import get_organ_labels
 
 here = Path(__file__).parent
 
+np.random.seed(100)
+
 
 def fit_knn(x: np.ndarray, **kwargs):
     nn = cuml.NearestNeighbors(**kwargs)
@@ -77,58 +79,71 @@ def get_nearest_neighbors(im, models):
     return results
 
 
-def generate_dataset(nr_neighbours: int):
+def get_organ_data(p, nr_pixels, labels, target_folder):
+    mapping = LabelMapping.from_path(p)
+    with open(str(settings.intermediates_dir / target_folder / 'mapping.json'), 'w') as handle:
+        json.dump(mapping.mapping_index_name, handle, indent=4)
+    im = p.read_cube()
+    seg = p.read_segmentation()
+    organ_indexes = [i for i in np.unique(seg) if mapping.index_to_name(i) in labels['organ_labels']]
+    if organ_indexes:
+        mask = np.zeros_like(seg)
+        for i in np.unique(seg):
+            if i not in organ_indexes:
+                continue
+            organ_location = np.where(seg == i)
+            nr_organ_pixels = organ_location[0].size
+            if not organ_location:
+                continue
+            location_index = np.arange(organ_location[0].size)
+            location_sample = np.random.choice(location_index, min(nr_organ_pixels, nr_pixels), replace=False)
+            organ_location_sampled = (organ_location[0][location_sample], organ_location[1][location_sample])
+            mask[organ_location_sampled] = 1
+    else:
+        return
+    mask = mask.astype(bool)
+    seg = seg[mask]
+    assert seg.size <= nr_pixels * len(organ_indexes)  # organs can have less than nr_pixels
+    return im, seg, mask
+
+
+def generate_dataset(nr_neighbours: int, target_folder: str = 'semantic_v2'):
     dataset_iterator = get_dataset_iterator()
     labels = get_organ_labels()
-    nr_pixels = labels['nr_pixels']
+    nr_pixels = labels['n_pixels']
     splits = split_dataset(iterator=dataset_iterator)
     # get fitted KNN models
     models = get_knn_models(nr_neighbours=nr_neighbours)
     # iterate over data splits
-    seg_folder = settings.intermediates_dir / 'semantic' / 'segmentation'
-    seg_folder.mkdir(exist_ok=True)
     for k, paths in splits.items():
         for p in tqdm(paths):
-            mapping = LabelMapping.from_path(p)
-            with open(str(settings.intermediates_dir / 'semantic' / 'mapping.json'), 'w') as handle:
-                json.dump(mapping.mapping_index_name, handle)
-            im = p.read_cube()
-            seg = p.read_segmentation()
-            organ_indexes = [i for i in np.unique(seg) if mapping.index_to_name(i) in labels['organ_labels']]
-            if organ_indexes:
-                mask = np.zeros_like(seg)
-                for i in np.unique(seg):
-                    if i not in organ_indexes:
-                        continue
-                    organ_location = np.where(seg == i)
-                    nr_organ_pixels = organ_location[0].size
-                    if not organ_location:
-                        continue
-                    location_index = np.arange(organ_location[0].size)
-                    location_sample = np.random.choice(location_index, min(nr_organ_pixels, nr_pixels), replace=False)
-                    organ_location_sampled = (organ_location[0][location_sample], organ_location[1][location_sample])
-                    mask[organ_location_sampled] = 1
-            else:
+            organ_data = get_organ_data(p=p, nr_pixels=nr_pixels, labels=labels, target_folder=target_folder)
+            if organ_data is None:
                 continue
-            mask = mask.astype(bool)
-            seg = seg[mask]
-            assert seg.size <= nr_pixels * len(organ_indexes)  # organs can have less than nr_pixels
-            np.save(file=str(seg_folder / f'{p.image_name()}.npy'), arr=seg)
+            else:
+                im, seg, mask = organ_data
             if k in ["train", "test", "val"]:
-                results_folder = settings.intermediates_dir / 'semantic' / k
+                results_folder = settings.intermediates_dir / target_folder / k
                 results_folder.mkdir(exist_ok=True)
                 data = im[mask]
                 assert data.shape[-1] == 100
                 ind = np.array(np.where(mask))
                 np.save(file=results_folder / f"{p.image_name()}.npy", arr=data)
                 np.save(file=results_folder / f"{p.image_name()}_ind.npy", arr=ind)
+                np.save(file=results_folder / f'{p.image_name()}_seg.npy', arr=seg)
             if k in ["train_synthetic", "val_synthetic", "test_synthetic"]:
                 data = im[mask]
                 ind = np.array(np.where(mask))
+                results_folder = settings.intermediates_dir / target_folder / f'{k}_real_source'
+                results_folder.mkdir(exist_ok=True, parents=True)
+                np.save(file=results_folder / f"{p.image_name()}.npy", arr=data)
+                np.save(file=results_folder / f"{p.image_name()}_ind.npy", arr=data)
+                np.save(file=results_folder / f'{p.image_name()}_seg.npy', arr=seg)
                 neighbours = get_nearest_neighbors(im=data, models=models)
                 for name, nn_images in neighbours.items():
-                    results_folder = settings.intermediates_dir / 'semantic' / f'{k}_{name}'
+                    results_folder = settings.intermediates_dir / target_folder / f'{k}_{name}'
                     results_folder.mkdir(exist_ok=True)
+                    np.save(file=results_folder / f'{p.image_name()}_seg.npy', arr=seg)
                     for i, nn_array in nn_images.items():
                         np.save(file=results_folder / f"{p.image_name()}_KNN_{i}.npy", arr=nn_array)
                         np.save(file=results_folder / f"{p.image_name()}_KNN_{i}_ind.npy", arr=ind)
