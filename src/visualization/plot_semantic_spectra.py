@@ -1,13 +1,14 @@
 import click
 import numpy as np
-from tqdm import tqdm
 import pandas as pd
 import re
 import plotly.express as px
-from sklearn.preprocessing import normalize
-import seaborn as sns
-from sklearn.decomposition import PCA
 import joblib
+import seaborn as sns
+from sklearn.preprocessing import normalize
+from sklearn.decomposition import PCA
+from tqdm import tqdm
+from typing import List
 
 from src import settings
 from src.visualization.plot import line
@@ -15,22 +16,24 @@ from src.visualization.templates import cmap_qualitative, cmap_qualitative_diff
 from src.utils.susi import ExperimentResults
 
 
-def load_data(splits: list, norm: bool = True):
+def _strip_names(files: List[str]) -> List[str]:
+    patterns = [re.findall('_KNN_\d', f) or '' for f in files]
+    patterns = [p[0] if p else '' for p in patterns]
+    files_clean = [f.replace(p, '') for f, p in zip(files, patterns)]
+    return files_clean
+
+
+def load_data(splits: list, norm: bool = True, target_dataset: str = "semantic_v2"):
     mapping = settings.mapping
     data = {s: [] for s in splits}
     for split in splits:
-        folder = settings.intermediates_dir / 'semantic' / split
-        files = [f for f in folder.glob('*.npy') if '_ind.npy' not in f.name]
-
-        seg_folder = settings.intermediates_dir / 'semantic' / 'segmentation'
+        folder = settings.intermediates_dir / target_dataset / split
+        files = [f for f in folder.glob('*.npy') if '_ind.npy' not in f.name and '_seg.npy' not in f.name]
+        seg_files = _strip_names([f"{str(f.name).split('.')[0]}_seg.npy" for f in files])
+        seg_files = [folder / f for f in seg_files]
         i = 0
-        for f in tqdm(files):
-            seg_name = f.name
-            if '_KNN_' in str(f) and '_KNN_0.npy' not in str(f):
-                continue
-            if '_KNN_' in str(f):
-                seg_name = re.sub('_KNN_\d.npy', '.npy', str(f.name))
-            seg = np.load(seg_folder / seg_name, allow_pickle=True)
+        for f, seg_f in tqdm(zip(files, seg_files)):
+            seg = np.load(seg_f, allow_pickle=True)
             img = np.load(f, allow_pickle=True)
             subject_id, image_id = f.name.split('#')
             image_id = '.'.join(image_id.split('.')[:-1])
@@ -128,7 +131,7 @@ def plot_semantic_spectra():
     inn_results = load_inn_results(folder='gan_cinn_hsi/2023_02_24_13_43_17/testing/generated_spectra_data')
     inn_agg = agg_data(inn_results)
     del inn_results
-    unit_results = load_inn_results(folder='unit/generated_spectra_data')
+    unit_results = load_inn_results(folder='unit/2023_02_27_21_46_33/testing/generated_spectra_data')
     unit_agg = agg_data(unit_results)
     del unit_results
 
@@ -170,7 +173,7 @@ def plot_knn_difference():
     real_agg = agg_data(data.get('val')).groupby(['organ', 'wavelength'], as_index=True).reflectance.median()
     simulated_agg = agg_data(data.get('val_synthetic_sampled')).groupby(['organ', 'wavelength'],
                                                                         as_index=True).reflectance.median()
-    unit_results = load_inn_results(folder='unit/generated_spectra_data')
+    unit_results = load_inn_results(folder='unit/2023_02_27_21_46_33/testing/generated_spectra_data')
     unit_agg = agg_data(unit_results).groupby(['organ', 'wavelength'], as_index=True).reflectance.median()
     del unit_results
     assert inn_agg.shape == real_agg.shape == simulated_agg.shape == unit_agg.shape
@@ -212,7 +215,7 @@ def plot_pca():
     inn_results = load_inn_results(folder='gan_cinn_hsi/2023_02_24_13_43_17/testing/generated_spectra_data')
     inn_agg = agg_data(inn_results)
     del inn_results
-    unit_results = load_inn_results(folder='unit/generated_spectra_data')
+    unit_results = load_inn_results(folder='unit/2023_02_27_21_46_33/testing/generated_spectra_data')
     unit_agg = agg_data(unit_results)
     del unit_results
     data = load_data(splits=['val', 'val_synthetic_sampled'])
@@ -224,15 +227,18 @@ def plot_pca():
     inn_agg['dataset'] = 'inn'
     unit_agg['dataset'] = 'unit'
     results = ExperimentResults()
-    # train PCA on entire real data
-    pca = PCA(n_components=2)
-    r_df = real_agg.pivot(columns='wavelength', values='reflectance', index='sample_id')
-    r_real = r_df.values
-    r_norm = normalize(r_real, norm="l2", axis=1)
-    pca.fit(r_norm)
     for organ in tqdm(real_agg.organ.unique()):
         # transform spectra
         tmp = real_agg[real_agg.organ == organ]
+
+        # train PCA on entire real data
+        pca = PCA(n_components=2)
+        r_df = tmp.pivot(columns='wavelength', values='reflectance', index='sample_id')
+        r_real = r_df.values
+        r_norm = normalize(r_real, norm="l2", axis=1)
+        pca.fit(r_norm)
+
+        # transform data
         compute_pcs(pca=pca, df=tmp, results=results, ids=(('dataset', 'real'), ('organ', organ)))
 
         tmp = simulated_agg[simulated_agg.organ == organ]
@@ -244,16 +250,15 @@ def plot_pca():
         tmp = inn_agg[inn_agg.organ == organ]
         compute_pcs(pca=pca, df=tmp, results=results, ids=(('dataset', 'inn'), ('organ', organ)))
 
+        # store PCA model
+        joblib.dump(pca, settings.results_dir / 'pca' / f'semantic_pca_{organ}.joblib')
+
     pc_df = results.get_df()
-    explained_variance = (round(pca.explained_variance_ratio_[0] * 100), round(pca.explained_variance_ratio_[1] * 100))
-    pc_df = pc_df.rename({'pc_1': f"PC 1 [{explained_variance[0]} %]",
-                          'pc_2': f"PC 2 [{explained_variance[1]} %]"},
-                         axis=1)
 
     n_classes = len(real_agg.organ.unique())
     fig = px.scatter(data_frame=pc_df,
-                     x=f"PC 1 [{explained_variance[0]} %]",
-                     y=f"PC 2 [{explained_variance[1]} %]",
+                     x=f"pc_1",
+                     y=f"pc_2",
                      color="dataset",
                      facet_col="organ",
                      facet_col_wrap=min(n_classes, 5),
@@ -270,7 +275,6 @@ def plot_pca():
     fig.write_image(settings.figures_dir / 'semantic_pca.pdf')
     fig.write_image(settings.figures_dir / 'semantic_pca.png')
     pc_df.to_csv(settings.figures_dir / 'semantic_pca.csv', index=False)
-    joblib.dump(pca, settings.results_dir / 'pca' / 'semantic_pca.joblib')
 
 
 def trace_selector_2d_contour(tr):
