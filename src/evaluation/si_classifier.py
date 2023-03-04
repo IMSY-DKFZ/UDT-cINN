@@ -9,6 +9,7 @@ from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, classification_report, roc_auc_score, balanced_accuracy_score
 from tqdm import tqdm
+from typing import Any
 
 from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
 from src import settings
@@ -16,115 +17,207 @@ from src.data.utils import get_label_mapping, IGNORE_CLASSES
 
 here = Path(__file__)
 np.random.seed(100)
+torch.manual_seed(100)
 
 LABELS = [int(k) for k, i in settings.mapping.items() if i in settings.organ_labels and i not in IGNORE_CLASSES]
 
 
-def load_data(target: str = 'val'):
+def _load_da_results(dm: SemanticDataModule, n_samples: int, results_folder: str) -> (torch.Tensor, torch.Tensor):
+    """
+    load synthetic adapted data. Teh precise data that is loaded can be defined through `results_folder`.
+    Spectra (`spectra_ab`) adapted from domain_a (synthetic) to domain_b (real) is loaded, hence the label of the
+    synthetic data is assigned to it.
+
+    :param dm: data module used to query the data statistics used for normalization
+    :param n_samples: number of samples randomly selected without repetition from dataset
+    :param results_folder: folder where files are stored in `.npy` format
+    :return:
+    """
+    data_stats = dm.train_dataloader().dataset.exp_config.data
+    folder = settings.results_dir / results_folder
+    files = list(folder.glob('*.npz'))
+    data = []
+    seg = []
+    for file in files:
+        tmp_data = np.load(file, allow_pickle=True)
+        x = torch.tensor(tmp_data['spectra_ab'])
+        # spectra adapted from synthetic to real should be normalized with the statistics of the real data set
+        x = ((x / torch.linalg.norm(x, ord=2, dim=1).unsqueeze(dim=1)) - data_stats["mean_b"]) / data_stats["std_b"]
+        y = tmp_data['seg_a']
+        selector = np.any([y == i for i in LABELS], axis=0)
+        y = torch.tensor(y)
+        x = x[selector]
+        y = y[selector]
+        data.append(x)
+        seg.append(y)
+    data = torch.concatenate(data, dim=0)
+    seg = torch.concatenate(seg)
+    index = np.random.choice(np.arange(data.shape[0]), size=n_samples, replace=True)
+    data = data[index]
+    seg = seg[index]
+    return data, seg
+
+
+def _load_synthetic_data(dm: SemanticDataModule, n_samples: int, target: Any) -> (torch.Tensor, torch.Tensor):
+    """
+    loads synthetic data (no adaptation) from data module according to target specifier. A random sample of the
+    corresponding data set is generated in order to return `n_samples`. This sampling is done without repetition.
+
+    NOTE: The test set of corresponding to the synthetic data splits is loaded
+
+    :param dm: data module used to query the data statistics used for normalization
+    :param n_samples: number of samples randomly selected without repetition from dataset
+    :param target: dummy value, always the test set of the synthetic data is loaded.
+    :return:
+    """
+    with EnableTestData(dm):
+        dl = dm.test_dataloader()
+    data = dl.dataset.data_a
+    data = ((data / torch.linalg.norm(data, ord=2, dim=1).unsqueeze(dim=1)) - dl.dataset.exp_config.data[
+        "mean_a"]) / dl.dataset.exp_config.data["std_a"]
+    seg = dl.dataset.seg_data_a
+    index = np.random.choice(np.arange(data.shape[0]), size=n_samples, replace=False)
+    data = data[index]
+    seg = seg[index]
+
+    return data, seg
+
+
+def _load_target_real_data(dm: SemanticDataModule, target: str) -> (torch.Tensor, torch.Tensor):
+    """
+    loads real data from data module according to target specifier. The number of samples in this dataset define the
+    number of samples drawn for all other loaders used during classifier training.
+
+    :param dm: data module used to query the data statistics used for normalization
+    :param target: defines the data set where the classifier is tested on, options are `val` and `test`
+    :return:
+    """
+    # load real data from target data set
+    if target == 'test':
+        with EnableTestData(dm):
+            test_dl = dm.test_dataloader()
+    elif target == 'val':
+        test_dl = dm.val_dataloader()
+    else:
+        raise ValueError(f"unknown target {target}")
+    data = test_dl.dataset.data_b
+    data = ((data / torch.linalg.norm(data, ord=2, dim=1).unsqueeze(dim=1)) - test_dl.dataset.exp_config.data[
+        "mean_b"]) / test_dl.dataset.exp_config.data["std_b"]
+    seg = test_dl.dataset.seg_data_b
+    n_samples = data.shape[0]
+    return data, seg, n_samples
+
+
+def _load_train_clf_real_data(dm: Any, n_samples: int) -> (torch.Tensor, torch.Tensor):
+    """
+    loads real data that was used to generate the synthetic sampled data set. A random sample of the
+    corresponding data set is generated in order to return `n_samples`. This sampling is done without repetition.
+    To load this real data, a new data module is used with the target `real_source`.
+    Normally real data would be loaded into `*_b` variables, but here we use a trick to load the real source data
+    into `*_a` variables.
+
+    :param dm: dummy variable, it is overwritten by correct data module
+    :param n_samples: number of samples randomly selected without repetition from dataset
+    :return:
+    """
     conf = dict(
         batch_size=100,
         shuffle=False,
         num_workers=1,
         normalization='standardize',
-        data=dict(mean_a=None, std_a=None, mean_b=None, std_b=None),  # this is handled internally by the loader
+        data=dict(mean_a=None, std_a=None, mean_b=None, std_b=None, balance_classes=True),
+        # data stats loaded internally by loader
         noise_aug=False,
         noise_aug_level=0
     )
     conf = DictConfig(conf)
-    dm = SemanticDataModule(experiment_config=conf, target='sampled')
+    dm = SemanticDataModule(experiment_config=conf, target='real_source', target_dataset='semantic_v2')
+    tdl = dm.train_dataloader()
+    data_stats = tdl.dataset.exp_config.data
+    data = tdl.dataset.data_a
+    data = ((data / torch.linalg.norm(data, ord=2, dim=1).unsqueeze(dim=1)) - data_stats["mean_b"]) / data_stats["std_b"]
+    seg = tdl.dataset.seg_data_a
+    index = np.random.choice(np.arange(data.shape[0]), size=n_samples, replace=False)
+    data = data[index]
+    seg = seg[index]
+    return data, seg
+
+
+def load_data(target: str = 'val') -> dict:
+    """
+    loads data that will be used for training and testing a classifier. Given the data structure below, the following
+    sets are loaded:
+
+    * `target=val`: (REAL, val), (SYNTHETIC, test), (DOMAIN ADAPTED, test), (REAL2, test)
+    * `target=test`: (REAL, test), (SYNTHETIC, test), (DOMAIN ADAPTED, test), (REAL2, test)
+
+     ======= =========== ================ ===================================
+      REAL    SYNTHETIC   DOMAIN ADAPTED   REAL (used to generate synthetic)
+     ======= =========== ================ ===================================
+      train   train       train            train
+      val     val         val              val
+      test    test        test             test
+     ======= =========== ================ ===================================
+
+    :param target: defines the data set where the classifier is tested on, options are `val` and `test`
+    :return: dictionary with data on each keyword
+    """
+    conf = dict(
+        batch_size=100,
+        shuffle=False,
+        num_workers=1,
+        normalization='standardize',
+        data=dict(mean_a=None, std_a=None, mean_b=None, std_b=None, balance_classes=True),
+        # data stats loaded internally by loader
+        noise_aug=False,
+        noise_aug_level=0
+    )
+    conf = DictConfig(conf)
+    dm = SemanticDataModule(experiment_config=conf, target='sampled', target_dataset='semantic_v2')
     dm.ignore_classes = IGNORE_CLASSES
     dm.setup(stage='eval')
-    tdl = dm.train_dataloader()
     # data_a refers to simulations while data_b refers to real data
-    # load real data from target data set
-    with EnableTestData(dm):
-        if target == 'test':
-            test_dl = dm.test_dataloader()
-        elif target == 'val':
-            test_dl = dm.val_dataloader()
-        else:
-            raise ValueError(f"unknown target {target}")
-    tdata_b = test_dl.dataset.data_b
-    tdata_b = ((tdata_b / torch.linalg.norm(tdata_b, ord=2, dim=1).unsqueeze(dim=1)) - test_dl.dataset.exp_config.data["mean_b"]) / test_dl.dataset.exp_config.data["std_b"]
-    tseg_b = test_dl.dataset.seg_data_b
-    n_samples = tdata_b.shape[0]
-    # load synthetic data from target data set
-    tdata_a = test_dl.dataset.data_a
-    tdata_a = ((tdata_a / torch.linalg.norm(tdata_a, ord=2, dim=1).unsqueeze(dim=1)) - test_dl.dataset.exp_config.data["mean_a"]) / test_dl.dataset.exp_config.data["std_a"]
-    tseg_a = test_dl.dataset.seg_data_a
-    index = np.random.choice(np.arange(tdata_a.shape[0]), size=n_samples, replace=False)
-    tdata_a = tdata_a[index]
-    tseg_a = tseg_a[index]
+    target_data_real, target_seg_real, n_samples = _load_target_real_data(dm=dm, target=target)
 
-    # load real data from train data set
-    data_b = tdl.dataset.data_b
-    data_b = ((data_b / torch.linalg.norm(data_b, ord=2, dim=1).unsqueeze(dim=1)) - tdl.dataset.exp_config.data["mean_b"]) / tdl.dataset.exp_config.data["std_b"]
-    seg_b = tdl.dataset.seg_data_b
-    index = np.random.choice(np.arange(data_b.shape[0]), size=n_samples, replace=False)
-    data_b = data_b[index]
-    seg_b = seg_b[index]
+    synthetic_data, synthetic_seg = _load_synthetic_data(dm=dm, n_samples=n_samples, target=target)
 
-    # load synthetic data adapted with INNs
-    folder = settings.results_dir / 'gan_cinn_hsi/2023_02_17_19_27_05/testing/generated_spectra_data'
-    files = list(folder.glob('*.npz'))
-    data_c = []
-    seg_c = []
-    for file in files:
-        tmp_data = np.load(file, allow_pickle=True)
-        x = torch.tensor(tmp_data['spectra_ab'])
-        # spectra adapted from synthetic to real should be normalized with the statistics of the real data set
-        x = ((x / torch.linalg.norm(x, ord=2, dim=1).unsqueeze(dim=1)) - tdl.dataset.exp_config.data["mean_b"]) / tdl.dataset.exp_config.data["std_b"]
-        y = tmp_data['seg_a']
-        selector = np.any([y == i for i in LABELS], axis=0)
-        y = torch.tensor(y)
-        x = x[selector]
-        y = y[selector]
-        data_c.append(x)
-        seg_c.append(y)
-    data_c = torch.concatenate(data_c, dim=0)
-    seg_c = torch.concatenate(seg_c)
-    index = np.random.choice(np.arange(data_c.shape[0]), size=n_samples, replace=True)
-    data_c = data_c[index]
-    seg_c = seg_c[index]
+    synthetic_real_source_data, synthetic_real_source_seg = _load_train_clf_real_data(dm=dm, n_samples=n_samples)
 
-    # load UNIT results
-    folder = settings.results_dir / 'unit' / 'generated_spectra_data'
-    files = list(folder.glob('*.npz'))
-    data_d = []
-    seg_d = []
-    for file in files:
-        tmp_data = np.load(file, allow_pickle=True)
-        x = torch.tensor(tmp_data['spectra_ab'])
-        # spectra adapted from synthetic to real should be normalized with the statistics of the real data set
-        x = ((x / torch.linalg.norm(x, ord=2, dim=1).unsqueeze(dim=1)) - tdl.dataset.exp_config.data["mean_b"]) / \
-            tdl.dataset.exp_config.data["std_b"]
-        y = tmp_data['seg_a']
-        selector = np.any([y == i for i in LABELS], axis=0)
-        y = torch.tensor(y)
-        x = x[selector]
-        y = y[selector]
-        data_d.append(x)
-        seg_d.append(y)
-    data_d = torch.concatenate(data_d, dim=0)
-    seg_d = torch.concatenate(seg_d)
-    index = np.random.choice(np.arange(data_d.shape[0]), size=n_samples, replace=True)
-    data_d = data_d[index]
-    seg_d = seg_d[index]
+    inn_data, inn_seg = _load_da_results(dm=dm, n_samples=n_samples, results_folder='gan_cinn_hsi/2023_02_17_19_27_05/testing/generated_spectra_data')
 
-    assert seg_b.size() == tseg_a.size() == seg_c.size() == seg_d.size() == tseg_b.size(), 'missmatch in data set sizes'
-    results = dict(train=dict(x_real=data_b, y_real=seg_b, x_sampled=tdata_a, y_sampled=tseg_a,
-                              x_adapted_inn=data_c, y_adapted_inn=seg_c, x_unit=data_d, y_unit=seg_d),
-                   test=dict(x_real=tdata_b, y_real=tseg_b))
+    unit_data, unit_seg = _load_da_results(dm=dm, n_samples=n_samples, results_folder='unit/2023_02_27_21_46_33/testing/generated_spectra_data')
+
+    assert synthetic_real_source_seg.size() == synthetic_seg.size() == inn_seg.size() == unit_seg.size() == target_seg_real.size(), 'missmatch in data set sizes'
+    results = dict(train=dict(x_real=synthetic_real_source_data, y_real=synthetic_real_source_seg,
+                              x_sampled=synthetic_data, y_sampled=synthetic_seg,
+                              x_adapted_inn=inn_data, y_adapted_inn=inn_seg,
+                              x_unit=unit_data, y_unit=unit_seg),
+                   test=dict(x_real=target_data_real, y_real=target_seg_real))
     return results
 
 
-def get_model(x: np.ndarray, y: np.ndarray, **kwargs):
+def get_model(x: np.ndarray, y: np.ndarray, **kwargs) -> RandomForestClassifier:
+    """
+    instantiates a random forest classifier and trains it
+
+    :param x: data used to train classifier
+    :param y: labels used for training classifier
+    :param kwargs: additional arguments parsed to classifier
+    :return: sklearn classifier
+    """
     model = RandomForestClassifier(**kwargs)
     model.fit(x, y)
     return model
 
 
 def eval_classification(target: str):
+    """
+    evaluates the performance of a classifier trained on different data source and tested on a held out data set.
+    The results are stored in the folder defined by `settings.results_dir`
+
+    :param target: defines the data set where the classifier is tested on, options are `val` and `test`
+    :return: None
+    """
     stages = [
         'adapted_inn',  # train model on synthetic test set adapted to real domain via INNs
         'real',  # train model on real train set sub sampled to have same size as test set
@@ -138,7 +231,7 @@ def eval_classification(target: str):
     for stage in tqdm(stages, desc="iterating stages"):
         train_data = data.get('train').get(f'x_{stage}')
         train_labels = data.get('train').get(f'y_{stage}')
-        model = get_model(train_data, train_labels, n_jobs=-1, n_estimators=10, random_state=13)
+        model = get_model(train_data, train_labels, n_jobs=-1, n_estimators=50)
         # compute score on test set of real data
         test_data = data.get('test').get('x_real')
         test_labels = data.get('test').get('y_real')
