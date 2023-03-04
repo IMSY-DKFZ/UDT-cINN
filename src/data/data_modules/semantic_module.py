@@ -184,7 +184,6 @@ class EnableTestData:
                                 num_workers=self.dm.num_workers,
                                 pin_memory=True,
                                 collate_fn=collate_hsi,
-                                shuffle=True,
                                 drop_last=False,
                                 batch_size=self.dm.batch_size,
                                 )
