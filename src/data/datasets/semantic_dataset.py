@@ -120,7 +120,10 @@ class SemanticDataset(Dataset):
 
     @staticmethod
     def normalize(x: torch.Tensor):
-        return x / norm(x, ord=2)
+        if len(x.shape) == 2:
+            return x / norm(x, ord=2, dim=1).unsqueeze(dim=1)
+        elif len(x.shape) == 1:
+            return x / norm(x, ord=2)
 
     def __getitem__(self, index) -> dict:
         if isinstance(index, list):

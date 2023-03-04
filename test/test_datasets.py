@@ -4,6 +4,7 @@ import numpy as np
 from omegaconf import DictConfig
 from pathlib import Path
 from tqdm import tqdm
+from sklearn.preprocessing import normalize
 
 from src import settings
 from src.data.datasets.semantic_dataset import SemanticDataset
@@ -183,6 +184,19 @@ class TestSemanticDataModule(unittest.TestCase):
         self.dm = SemanticDataModule(experiment_config=conf, target='unique', target_dataset='semantic_v2')
         self.dm.setup(stage='setup')
 
+    def test_normalization(self):
+        # test normalization of 1D vector
+        x = torch.rand(100)
+        true_normalization = normalize(x.numpy()[np.newaxis, ...], axis=1, norm='l2').squeeze()
+        dm_norm = self.dm.train_dataloader().dataset.normalize(x)
+        np.testing.assert_allclose(true_normalization, dm_norm.numpy(), atol=1e-6)
+
+        # test normalization of 2D array
+        x = torch.rand(10, 100)
+        true_normalization = normalize(x.numpy(), axis=1, norm='l2').squeeze()
+        dm_norm = self.dm.train_dataloader().dataset.normalize(x)
+        np.testing.assert_allclose(true_normalization, dm_norm.numpy(), atol=1e-6)
+
     def test_train_dl(self):
         train_dl = self.dm.train_dataloader()
         data = next(iter(train_dl))
@@ -285,8 +299,8 @@ class TestSemanticDataModule(unittest.TestCase):
                     shuffle=False,
                     num_workers=1,
                     normalization='standardize',
-                    data=dict(mean=0.1, std=0.1, balance_classes=balance_classes),
-                    noise_aug=True,
+                    data=dict(mean=None, std=None, balance_classes=balance_classes),
+                    noise_aug=False,
                     noise_aug_level=0.1
                     )
         conf = DictConfig(conf)
