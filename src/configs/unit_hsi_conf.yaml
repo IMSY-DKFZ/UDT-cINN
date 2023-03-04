@@ -1,6 +1,6 @@
 experiment_name: unit_hsi
 
-epochs: 400
+epochs: 300
 seed: 42
 num_workers: 16
 shuffle: 1
