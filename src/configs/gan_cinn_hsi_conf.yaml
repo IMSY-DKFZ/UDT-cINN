@@ -32,7 +32,7 @@ beta1: 0.9                    # Adam parameter
 beta2: 0.95
 condition: segmentation       # segmentation, domain, both
 label_noise: True
-label_noise_level: 0.5
+label_noise_level: 0.8
 real_labels: random_choice
 
 data:
