@@ -25,6 +25,8 @@ def collate(batch_dict):
 
 
 def collate_hsi(batch):
+    if isinstance(batch, dict):
+        return batch
     spectra_a = torch.stack([i['spectra_a'] for i in batch], dim=0)
     spectra_b = torch.stack([i['spectra_b'] for i in batch], dim=0)
 

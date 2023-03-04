@@ -95,7 +95,7 @@ class DAInnBaseHSI(DomainAdaptationTrainerBaseHSI, ABC):
     def gan_inn_training_step(self, batch, optimizer_idx):
         spectra_a, spectra_b = self.get_spectra(batch)
         if spectra_b.size()[0] != self.config.batch_size:
-            print("Skipped batch because of uneven data_sizes")
+            print(f"Skipped batch because of uneven data_sizes {spectra_b.size()} != {self.config.batch_size}")
             return None
 
         if optimizer_idx == 0:

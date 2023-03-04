@@ -1,14 +1,13 @@
 import unittest
+import torch
+import numpy as np
+from omegaconf import DictConfig
 from pathlib import Path
 from tqdm import tqdm
-import torch
-from omegaconf import DictConfig
-import numpy as np
-import json
 
 from src import settings
 from src.data.datasets.semantic_dataset import SemanticDataset
-from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
+from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData, BalancedBatchSampler
 
 this_path = Path(__file__)
 
@@ -33,11 +32,33 @@ def find_unique_rows(x: torch.Tensor, desc: str = "") -> torch.Tensor:
     return unique
 
 
+class TestSamplers(unittest.TestCase):
+    def setUp(self) -> None:
+        self.batch_size = 9
+        self.n_samples = 1000
+        self.classes = torch.randint(0, 7, (self.n_samples,)).cpu().numpy()
+        self.class_size = self.batch_size // len(np.unique(self.classes))
+        self.data_source = np.random.rand(self.n_samples)
+        self.batch_sampler = BalancedBatchSampler(data_source=self.data_source,
+                                                  batch_size=self.batch_size,
+                                                  drop_last=True,
+                                                  classes=self.classes,
+                                                  )
+
+    def test_batch_sampler(self):
+        prevalence_tolerance = self.batch_size % len(np.unique(self.classes))
+        for idx in self.batch_sampler:
+            self.assertTrue(len(idx[0]) == self.batch_size)
+            labels = self.classes[idx[0]]
+            for label in np.unique(labels):
+                np.testing.assert_allclose(len(labels[labels == label]), self.class_size, atol=prevalence_tolerance)
+
+
 class TestSemanticUnique(unittest.TestCase):
     def setUp(self) -> None:
         self.base_folder = settings.intermediates_dir / 'semantic_unique'
         self.config = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, normalization="standardize",
-                                      data=dict(mean_a=None, mean_b=None, std=None, std_b=None),
+                                      data=dict(mean_a=None, mean_b=None, std=None, std_b=None, balance_classes=True),
                                       noise_aug=False, noise_aug_level=None))
         self.dm = SemanticDataModule(experiment_config=self.config, target_dataset='semantic_v2', target='unique')
         self.dm.setup(stage='train')
@@ -74,17 +95,17 @@ class TestSemanticUnique(unittest.TestCase):
         assert x_unique_true.shape == x.shape
 
 
-class TestAdaptToCamera(unittest.TestCase):
+class TestDataSplits(unittest.TestCase):
     def setUp(self) -> None:
         pass
 
     def test_semantic_dataset_splits(self):
-        train_folder = settings.intermediates_dir / 'semantic' / 'train'
-        val_folder = settings.intermediates_dir / 'semantic' / 'val'
-        test_folder = settings.intermediates_dir / 'semantic' / 'test'
-        train_synthetic_folder = settings.intermediates_dir / 'semantic' / 'train_synthetic_adapted'
-        val_synthetic_folder = settings.intermediates_dir / 'semantic' / 'val_synthetic_adapted'
-        test_synthetic_folder = settings.intermediates_dir / 'semantic' / 'test_synthetic_adapted'
+        train_folder = settings.intermediates_dir / 'semantic_v2' / 'train'
+        val_folder = settings.intermediates_dir / 'semantic_v2' / 'val'
+        test_folder = settings.intermediates_dir / 'semantic_v2' / 'test'
+        train_synthetic_folder = settings.intermediates_dir / 'semantic_v2' / 'train_synthetic_sampled'
+        val_synthetic_folder = settings.intermediates_dir / 'semantic_v2' / 'val_synthetic_sampled'
+        test_synthetic_folder = settings.intermediates_dir / 'semantic_v2' / 'test_synthetic_sampled'
 
         train_files = list(train_folder.glob('*.npy'))
         val_files = list(val_folder.glob('*.npy'))
@@ -101,7 +122,8 @@ class TestAdaptToCamera(unittest.TestCase):
         test_synthetic_subjects = set([str(f.name).split('#')[0] for f in test_synthetic_files])
 
         self.assertFalse(set.intersection(*map(set, [train_subjects, val_subjects, test_subjects,
-                                                     train_synthetic_subjects, val_synthetic_subjects, test_synthetic_subjects])))
+                                                     train_synthetic_subjects, val_synthetic_subjects,
+                                                     test_synthetic_subjects])))
 
 
 class TestSemanticDataset(unittest.TestCase):
@@ -109,10 +131,10 @@ class TestSemanticDataset(unittest.TestCase):
         pass
 
     def test_loading(self):
-        config = DictConfig({'data': {'mean_a': 0.1, 'std_a': 0.1, 'mean_b': 0.1, 'std_b': 0.1},
+        config = DictConfig({'data': {'mean_a': 0.1, 'std_a': 0.1, 'mean_b': 0.1, 'std_b': 0.1, 'balance_classes': True},
                              'normalization': 'standardize'})
-        ds = SemanticDataset(root_a=settings.intermediates_dir / 'semantic' / 'train',
-                             root_b=settings.intermediates_dir / 'semantic' / 'train_synthetic_sampled',
+        ds = SemanticDataset(root_a=settings.intermediates_dir / 'semantic_v2' / 'train',
+                             root_b=settings.intermediates_dir / 'semantic_v2' / 'train_synthetic_sampled',
                              exp_config=config,
                              noise_aug=True,
                              noise_std=0.3)
@@ -130,37 +152,39 @@ class TestSemanticDataset(unittest.TestCase):
         self.assertTrue(isinstance(data.get('image_ids_b'), str))
 
     def test_segmentations(self):
-        folder = settings.intermediates_dir / 'semantic'
-        mapping_file = folder / 'mapping.json'
-        semantic_labels_file = this_path.parent.parent / 'src' / 'data' / 'semantic_organ_labels.json'
-        with open(str(semantic_labels_file), 'rb') as handle:
-            labels = json.load(handle)['organ_labels']
+        folder = settings.intermediates_dir / 'semantic_v2'
+        labels = settings.organ_labels
+        mapping = settings.mapping
         organs = []
-        with open(str(mapping_file), 'rb') as handle:
-            mapping = json.load(handle)
-        for f in tqdm(list((folder/'segmentation').glob('*.npy'))):
-            x = np.load(f, allow_pickle=True)
-            ind = np.unique(x)
-            organs += [mapping[str(i)] for i in ind]
-        self.assertTrue(set(labels) == set(organs), f"organs in labels != organs in segmentations "
-                                                    f"{list(set(labels))}!={list(set(organs))}")
+        splits = [f for f in list(folder.glob('*')) if f.is_dir()]
+        for split in splits:
+            files = list(split.glob('*_seg.npy'))
+            for f in tqdm(files, desc=split.name):
+                x = np.load(f, allow_pickle=True)
+                ind = np.unique(x)
+                organs += [mapping[str(i)] for i in ind]
+            self.assertTrue(set(organs).issubset(labels), f"organs in labels != organs in segmentations "
+                                                          f"{list(set(organs))} is not subset of {list(set(labels))}")
 
 
 class TestSemanticDataModule(unittest.TestCase):
     def setUp(self) -> None:
-        conf = dict(batch_size=1000,
+        self.batch_size = 10000
+        self.balance_classes = False
+        conf = dict(batch_size=self.batch_size,
                     shuffle=False,
                     num_workers=1,
                     normalization='standardize',
-                    data=dict(mean_a=None, mean_b=None, std=None, std_b=None),
-                    target='real'
+                    data=dict(mean_a=None, mean_b=None, std=None, std_b=None, balance_classes=self.balance_classes),
+                    noise_aug=True,
+                    noise_aug_level=0.1
                     )
         conf = DictConfig(conf)
-        self.dl = SemanticDataModule(experiment_config=conf)
-        self.dl.setup(stage='setup')
+        self.dm = SemanticDataModule(experiment_config=conf, target='unique', target_dataset='semantic_v2')
+        self.dm.setup(stage='setup')
 
     def test_train_dl(self):
-        train_dl = self.dl.train_dataloader()
+        train_dl = self.dm.train_dataloader()
         data = next(iter(train_dl))
         self.assertTrue(isinstance(data.get('spectra_a'), torch.Tensor))
         self.assertTrue(len(data.get('spectra_a').size()) == 2)
@@ -176,9 +200,14 @@ class TestSemanticDataModule(unittest.TestCase):
         self.assertTrue(len(data.get('spectra_a')) == len(data.get('spectra_b')) == len(data.get('seg_a'))
                         == len(data.get('seg_b')) == len(data.get('subjects_a')) == len(data.get('subjects_b'))
                         == len(data.get('image_ids_a')) == len(data.get('image_ids_b')))
+        labels = data.get('seg_a')
+        class_size = self.batch_size // len(torch.unique(labels))
+        prevalence_tolerance = self.batch_size % len(torch.unique(labels))
+        for label in torch.unique(labels):
+            np.testing.assert_allclose(len(labels[labels == label]), class_size, atol=prevalence_tolerance)
 
     def test_val_dl(self):
-        dl = self.dl.val_dataloader()
+        dl = self.dm.val_dataloader()
         data = next(iter(dl))
         self.assertTrue(isinstance(data.get('spectra_a'), torch.Tensor))
         self.assertTrue(len(data.get('spectra_a').size()) == 2)
@@ -187,53 +216,85 @@ class TestSemanticDataModule(unittest.TestCase):
         self.assertTrue(len(data.get('spectra_b').size()) == 2)
         self.assertTrue(isinstance(data.get('seg_b'), torch.Tensor))
         self.assertTrue(isinstance(data.get('mapping'), dict))
-        self.assertTrue(isinstance(data.get('subjects_a'), np.ndarray))
-        self.assertTrue(isinstance(data.get('subjects_b'), np.ndarray))
-        self.assertTrue(isinstance(data.get('image_ids_a'), np.ndarray))
-        self.assertTrue(isinstance(data.get('image_ids_b'), np.ndarray))
+        self.assertTrue(isinstance(data.get('subjects_a'), str))
+        self.assertTrue(isinstance(data.get('subjects_b'), str))
+        self.assertTrue(isinstance(data.get('image_ids_a'), str))
+        self.assertTrue(isinstance(data.get('image_ids_b'), str))
         self.assertTrue(len(data.get('spectra_a')) == len(data.get('spectra_b')) == len(data.get('seg_a'))
-                        == len(data.get('seg_b')) == len(data.get('subjects_a')) == len(data.get('subjects_b'))
-                        == len(data.get('image_ids_a')) == len(data.get('image_ids_b')))
+                        == len(data.get('seg_b')))
 
     @unittest.skipIf(False, "loading all data is slow, this test should be run manually")
     def test_dl_loading(self):
-        loaders = [self.dl.val_dataloader(), self.dl.train_dataloader()]
+        loaders = [self.dm.train_dataloader(), self.dm.val_dataloader()]
         for loader in loaders:
+            batch_size = loader.batch_sampler.batch_size
             ignore_classes = loader.dataset.ignore_classes
+            pbar = tqdm(total=len(loader))
             ignore_indices = [int(i) for i, k in settings.mapping.items() if k in ignore_classes]
-            for data in tqdm(loader):
-                self.assertTrue(isinstance(data.get('spectra_a'), torch.Tensor))
-                self.assertTrue(len(data.get('spectra_a').size()) == 2)
-                self.assertTrue(isinstance(data.get('seg_a'), torch.Tensor))
-                self.assertTrue(np.all([i not in data.get('seg_a') for i in ignore_indices]))
-                self.assertTrue(isinstance(data.get('spectra_b'), torch.Tensor))
-                self.assertTrue(len(data.get('spectra_b').size()) == 2)
-                self.assertTrue(isinstance(data.get('seg_b'), torch.Tensor))
-                self.assertTrue(np.any([i not in data.get('seg_b') for i in ignore_indices]))
-                self.assertTrue(isinstance(data.get('mapping'), dict))
-                self.assertTrue(np.all([i in np.arange(len(data.get('order'))) for i in data.get('order').values()]))
-                self.assertTrue(isinstance(data.get('subjects_a'), np.ndarray))
-                self.assertTrue(isinstance(data.get('subjects_b'), np.ndarray))
-                self.assertTrue(isinstance(data.get('image_ids_a'), np.ndarray))
-                self.assertTrue(isinstance(data.get('image_ids_b'), np.ndarray))
-                self.assertTrue(len(data.get('spectra_a')) == len(data.get('spectra_b')) == len(data.get('seg_a'))
-                                == len(data.get('seg_b')) == len(data.get('subjects_a')) == len(data.get('subjects_b'))
-                                == len(data.get('image_ids_a')) == len(data.get('image_ids_b')))
+            loader_iter = iter(loader)
+            while True:
+                try:
+                    data = next(loader_iter)
+                    self.assertTrue(isinstance(data.get('spectra_a'), torch.Tensor))
+                    self.assertTrue(len(data.get('spectra_a').size()) == 2)
+                    self.assertTrue(isinstance(data.get('seg_a'), torch.Tensor))
+                    self.assertTrue(np.all([i not in data.get('seg_a') for i in ignore_indices]))
+                    self.assertTrue(isinstance(data.get('spectra_b'), torch.Tensor))
+                    self.assertTrue(len(data.get('spectra_b').size()) == 2)
+                    self.assertTrue(isinstance(data.get('seg_b'), torch.Tensor))
+                    self.assertTrue(np.any([i not in data.get('seg_b') for i in ignore_indices]))
+                    self.assertTrue(isinstance(data.get('mapping'), dict))
+                    self.assertTrue(np.all([i in np.arange(len(data.get('order'))) for i in data.get('order').values()]))
+                    if batch_size == 1:
+                        self.assertTrue(isinstance(data.get('subjects_a'), str))
+                        self.assertTrue(isinstance(data.get('subjects_b'), str))
+                        self.assertTrue(isinstance(data.get('image_ids_a'), str))
+                        self.assertTrue(isinstance(data.get('image_ids_b'), str))
+                        self.assertTrue(len(data.get('spectra_a')) == len(data.get('spectra_b')) == len(data.get('seg_a'))
+                                        == len(data.get('seg_b')))
+                    else:
+                        self.assertTrue(isinstance(data.get('subjects_a'), np.ndarray))
+                        self.assertTrue(isinstance(data.get('subjects_b'), np.ndarray))
+                        self.assertTrue(isinstance(data.get('image_ids_a'), np.ndarray))
+                        self.assertTrue(isinstance(data.get('image_ids_b'), np.ndarray))
+                        self.assertTrue(
+                            len(data.get('spectra_a')) == len(data.get('spectra_b')) == len(data.get('seg_a'))
+                            == len(data.get('seg_b')) == len(data.get('subjects_a')) == len(data.get('subjects_b'))
+                            == len(data.get('image_ids_a')) == len(data.get('image_ids_b')))
+                        labels = data.get('seg_a')
+                        class_size = self.batch_size // len(torch.unique(labels))
+                        prevalence_tolerance = self.batch_size % len(torch.unique(labels))
+                        if self.balance_classes:
+                            for label in torch.unique(labels):
+                                np.testing.assert_allclose(len(labels[labels == label]), class_size,
+                                                           atol=prevalence_tolerance)
+                        else:
+                            for label in torch.unique(labels):
+                                self.assertFalse(
+                                    np.allclose(len(labels[labels == label]), class_size, atol=prevalence_tolerance)
+                                )
+                    pbar.update(1)
+                except (StopIteration, KeyboardInterrupt):
+                    break
 
     @unittest.skipIf(False, "loading all data is slow, this test should be run manually")
     def test_dl_loading_synthetic(self):
-        conf = dict(batch_size=100,
+        self.batch_size = 10000
+        balance_classes = True
+        conf = dict(batch_size=self.batch_size,
                     shuffle=False,
                     num_workers=1,
                     normalization='standardize',
-                    data=dict(mean=0.1, std=0.1),
-                    target='synthetic'
+                    data=dict(mean=0.1, std=0.1, balance_classes=balance_classes),
+                    noise_aug=True,
+                    noise_aug_level=0.1
                     )
         conf = DictConfig(conf)
-        dl = SemanticDataModule(experiment_config=conf)
-        dl.setup(stage='train')
-        loaders = [dl.val_dataloader(), dl.train_dataloader()]
+        dm = SemanticDataModule(experiment_config=conf, target_dataset='semantic_v2', target='unique')
+        dm.setup(stage='train')
+        loaders = [dm.train_dataloader(), dm.val_dataloader()]
         for loader in loaders:
+            batch_size = loader.batch_sampler.batch_size
             for data in tqdm(loader):
                 self.assertTrue(isinstance(data.get('spectra_a'), torch.Tensor))
                 self.assertTrue(len(data.get('spectra_a').size()) == 2)
@@ -243,17 +304,37 @@ class TestSemanticDataModule(unittest.TestCase):
                 self.assertTrue(isinstance(data.get('seg_b'), torch.Tensor))
                 self.assertTrue(isinstance(data.get('mapping'), dict))
                 self.assertTrue(np.all([i in np.arange(len(data.get('order'))) for i in data.get('order').values()]))
-                self.assertTrue(isinstance(data.get('subjects_a'), np.ndarray))
-                self.assertTrue(isinstance(data.get('subjects_b'), np.ndarray))
-                self.assertTrue(isinstance(data.get('image_ids_a'), np.ndarray))
-                self.assertTrue(isinstance(data.get('image_ids_b'), np.ndarray))
-                self.assertTrue(len(data.get('spectra_a')) == len(data.get('spectra_b')) == len(data.get('seg_a'))
-                                == len(data.get('seg_b')) == len(data.get('subjects_a')) == len(data.get('subjects_b'))
-                                == len(data.get('image_ids_a')) == len(data.get('image_ids_b')))
+                if batch_size == 1:
+                    self.assertTrue(isinstance(data.get('subjects_a'), str))
+                    self.assertTrue(isinstance(data.get('subjects_b'), str))
+                    self.assertTrue(isinstance(data.get('image_ids_a'), str))
+                    self.assertTrue(isinstance(data.get('image_ids_b'), str))
+                    self.assertTrue(len(data.get('spectra_a')) == len(data.get('spectra_b')) == len(data.get('seg_a'))
+                                    == len(data.get('seg_b')))
+                else:
+                    self.assertTrue(isinstance(data.get('subjects_a'), np.ndarray))
+                    self.assertTrue(isinstance(data.get('subjects_b'), np.ndarray))
+                    self.assertTrue(isinstance(data.get('image_ids_a'), np.ndarray))
+                    self.assertTrue(isinstance(data.get('image_ids_b'), np.ndarray))
+                    self.assertTrue(len(data.get('spectra_a')) == len(data.get('spectra_b')) == len(data.get('seg_a'))
+                                    == len(data.get('seg_b')) == len(data.get('subjects_a')) == len(data.get('subjects_b'))
+                                    == len(data.get('image_ids_a')) == len(data.get('image_ids_b')))
+                    labels = data.get('seg_a')
+                    class_size = self.batch_size // len(torch.unique(labels))
+                    prevalence_tolerance = self.batch_size % len(torch.unique(labels))
+                    if balance_classes:
+                        for label in torch.unique(labels):
+                            np.testing.assert_allclose(len(labels[labels == label]), class_size,
+                                                       atol=prevalence_tolerance)
+                    else:
+                        for label in torch.unique(labels):
+                            self.assertFalse(
+                                np.allclose(len(labels[labels == label]), class_size, atol=prevalence_tolerance)
+                            )
 
     def test_dl_test_context_manager(self):
-        with EnableTestData(self.dl):
-            loaders = [self.dl.test_dataloader()]
+        with EnableTestData(self.dm):
+            loaders = [self.dm.test_dataloader()]
             for loader in loaders:
                 for data in tqdm(loader):
                     self.assertTrue(isinstance(data.get('spectra_a'), torch.Tensor))
@@ -263,7 +344,8 @@ class TestSemanticDataModule(unittest.TestCase):
                     self.assertTrue(len(data.get('spectra_b').size()) == 2)
                     self.assertTrue(isinstance(data.get('seg_b'), torch.Tensor))
                     self.assertTrue(isinstance(data.get('mapping'), dict))
-                    self.assertTrue(np.all([i in np.arange(len(data.get('order'))) for i in data.get('order').values()]))
+                    self.assertTrue(
+                        np.all([i in np.arange(len(data.get('order'))) for i in data.get('order').values()]))
                     self.assertTrue(isinstance(data.get('subjects_a'), np.ndarray))
                     self.assertTrue(isinstance(data.get('subjects_b'), np.ndarray))
                     self.assertTrue(isinstance(data.get('image_ids_a'), np.ndarray))
@@ -272,7 +354,7 @@ class TestSemanticDataModule(unittest.TestCase):
                                     == len(data.get('seg_b')) == len(data.get('subjects_a')) == len(
                         data.get('subjects_b'))
                                     == len(data.get('image_ids_a')) == len(data.get('image_ids_b')))
-        self.assertTrue(self.dl.test_dataloader is None)
+        self.assertTrue(self.dm.test_dataloader is None)
 
 
 if __name__ == '__main__':

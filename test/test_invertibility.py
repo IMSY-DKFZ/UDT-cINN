@@ -1,15 +1,22 @@
-from src.utils.config_io import load_config
-from src.trainers import GanCondinitionalDomainAdaptationINNHSI, GanCondinitionalDomainAdaptationINN
 import torch
 import unittest
 from numpy.testing import assert_array_almost_equal
+from pathlib import Path
+import pytorch_lightning as pl
+
+from src.utils.config_io import load_config
+from src.trainers import GanCondinitionalDomainAdaptationINNHSI, GanCondinitionalDomainAdaptationINN
+
+
+here = Path(__file__).parent
 
 
 class InnInvertibilityTest(unittest.TestCase):
 
     def setUp(self) -> None:
+        pl.seed_everything(100)
 
-        self.config = load_config("/home/kris/Work/Repositories/miccai23/src/configs/test_conf.yaml")
+        self.config = load_config(str(here.parent / "src" / "configs" / "test_conf.yaml"))
 
         self.model_list = [
             GanCondinitionalDomainAdaptationINN,

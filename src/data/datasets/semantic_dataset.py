@@ -1,9 +1,9 @@
 import torch
 from torch.utils.data import Dataset
 import numpy as np
+import re
 from pathlib import Path
 from omegaconf import DictConfig
-import re
 from torch.linalg import norm
 from typing import List
 
@@ -51,6 +51,7 @@ class SemanticDataset(Dataset):
             self.organs = settings.organ_labels
             self.order = {int(self.mapping_inv[o]): i for i, o in enumerate(self.organs)}
         self.test_set = test_set
+        self.balance_batch_classes = True
 
     def filter_dataset(self):
         if self.ignore_classes:
@@ -122,6 +123,8 @@ class SemanticDataset(Dataset):
         return x / norm(x, ord=2)
 
     def __getitem__(self, index) -> dict:
+        if isinstance(index, list):
+            index = torch.tensor(index)
         spectra_a = self.data_a[index % self.data_a_size, ...]
         spectra_b = self.data_b[index % self.data_b_size, ...]
         seg_a = self.seg_data_a[index % self.data_a_size]
@@ -148,6 +151,16 @@ class SemanticDataset(Dataset):
             "image_ids_b": image_ids_b,
             "mapping": self.mapping,
             "order": self.order}
+
+    def __getitems__(self, indexes):
+        if isinstance(indexes, tuple):
+            data = self.__getitem__(indexes[0])
+            data_b = self.__getitem__(indexes[1])
+            keys_b = [k for k in data.keys() if k.endswith('_b')]
+            data.update({k: data_b[k] for k in keys_b})
+        else:
+            data = self.__getitem__(indexes)
+        return data
 
     def __len__(self):
         if self.test_set:

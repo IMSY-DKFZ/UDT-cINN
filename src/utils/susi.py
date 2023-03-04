@@ -1,4 +1,9 @@
 import os
+import time
+import cProfile
+import pstats
+import functools
+import io
 from functools import reduce
 from typing import Iterable, List, Union
 
@@ -6,6 +11,43 @@ import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
 from src.utils.camera import ImagingSystem, transform_reflectance
+
+
+def profile(_func=None, *, filter_name="src/"):
+    def deco_profile(func):
+        @functools.wraps(func)
+        def profile_wrapper(*args, **kwargs):
+            profiler = cProfile.Profile()
+            profiler.enable()
+            value = func(*args, **kwargs)
+            profiler.disable()
+            s = io.StringIO()
+            sort_by = 'cumulative'
+            ps = pstats.Stats(profiler, stream=s).sort_stats(sort_by)
+            ps.print_stats(filter_name)
+            print(s.getvalue())
+            return value
+        return profile_wrapper
+
+    if _func is None:
+        return deco_profile
+    else:
+        return deco_profile(_func)
+
+
+class MeasureTime:
+    def __init__(self, print_time=False):
+        self.s = None
+        self.e = None
+        self.print_time = print_time
+
+    def __enter__(self):
+        self.s = time.time()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.e = time.time()
+        if self.print_time:
+            print(f"duration: {self.e - self.s}\n")
 
 
 class ExperimentResults:
