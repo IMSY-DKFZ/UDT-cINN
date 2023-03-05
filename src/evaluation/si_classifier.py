@@ -166,13 +166,19 @@ def _load_train_clf_real_data(dm: Any, n_samples: int, balance_classes: bool) ->
     :param n_samples: number of samples randomly selected without repetition from dataset
     :return:
     """
+    if dm.exp_config.data.choose_spectra == 'sampled':
+        choose_spectra = 'real_source'
+    elif dm.exp_config.data.choose_spectra == 'unique':
+        choose_spectra = 'real_source_unique'
+    else:
+        raise ValueError(f"unrecognized choose_spectra = {dm.exp_config.data.choose_spectra}")
     conf = dict(
         batch_size=100,
         shuffle=False,
         num_workers=1,
         normalization='standardize',
         data=dict(mean_a=None, std_a=None, mean_b=None, std_b=None, balance_classes=False,
-                  dataset_version='semantic_v2', choose_spectra='real_source'),
+                  dataset_version='semantic_v2', choose_spectra=choose_spectra),
         # data stats loaded internally by loader
         noise_aug=False,
         noise_aug_level=0
