@@ -7,13 +7,15 @@ import os
 from omegaconf import DictConfig
 from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix, classification_report, roc_auc_score, balanced_accuracy_score
+from sklearn.metrics import confusion_matrix, classification_report, roc_auc_score, balanced_accuracy_score, f1_score
+from sklearn.calibration import CalibratedClassifierCV
 from tqdm import tqdm
 from typing import Any
 
 from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
 from src import settings
 from src.data.utils import get_label_mapping, IGNORE_CLASSES
+from src.utils.susi import ExperimentResults
 
 here = Path(__file__)
 manual_seed = 42
@@ -53,7 +55,10 @@ def _load_da_results(dm: SemanticDataModule, n_samples: int, results_folder: str
         seg.append(y)
     data = torch.concatenate(data, dim=0)
     seg = torch.concatenate(seg)
-    index = np.random.choice(np.arange(data.shape[0]), size=n_samples, replace=True)
+    if n_samples > data.shape[0]:
+        index = np.random.choice(np.arange(data.shape[0]), size=data.shape[0], replace=False)
+    else:
+        index = np.random.choice(np.arange(data.shape[0]), size=n_samples, replace=False)
     data = data[index]
     seg = seg[index]
     return data, seg
@@ -77,7 +82,10 @@ def _load_synthetic_data(dm: SemanticDataModule, n_samples: int, target: Any) ->
     data = ((data / torch.linalg.norm(data, ord=2, dim=1).unsqueeze(dim=1)) - dl.dataset.exp_config.data[
         "mean_a"]) / dl.dataset.exp_config.data["std_a"]
     seg = dl.dataset.seg_data_a
-    index = np.random.choice(np.arange(data.shape[0]), size=n_samples, replace=True)
+    if n_samples > data.shape[0]:
+        index = np.random.choice(np.arange(data.shape[0]), size=data.shape[0], replace=False)
+    else:
+        index = np.random.choice(np.arange(data.shape[0]), size=n_samples, replace=False)
     data = data[index]
     seg = seg[index]
 
@@ -140,7 +148,10 @@ def _load_train_clf_real_data(dm: Any, n_samples: int) -> (torch.Tensor, torch.T
     data = tdl.dataset.data_a
     data = ((data / torch.linalg.norm(data, ord=2, dim=1).unsqueeze(dim=1)) - data_stats["mean_b"]) / data_stats["std_b"]
     seg = tdl.dataset.seg_data_a
-    index = np.random.choice(np.arange(data.shape[0]), size=n_samples, replace=True)
+    if n_samples > data.shape[0]:
+        index = np.random.choice(np.arange(data.shape[0]), size=data.shape[0], replace=False)
+    else:
+        index = np.random.choice(np.arange(data.shape[0]), size=n_samples, replace=False)
     data = data[index]
     seg = seg[index]
     return data, seg
@@ -232,6 +243,7 @@ def eval_classification(target: str):
     labels = [int(k) for k in mapping]
     names = [mapping[str(k)] for k in labels]
     data = load_data(target=target)
+    metrics = ExperimentResults()
     for stage in tqdm(stages, desc="iterating stages"):
         train_data = data.get('train').get(f'x_{stage}')
         train_labels = data.get('train').get(f'y_{stage}')
@@ -239,14 +251,26 @@ def eval_classification(target: str):
         # compute score on test set of real data
         test_data = data.get('test').get('x_real')
         test_labels = data.get('test').get('y_real')
-        score = model.score(test_data, test_labels)
-        print(f'score {stage}: {score}')
-        y_pred = model.predict(test_data)
-        y_proba = model.predict_proba(test_data)
-        report = classification_report(test_labels, y_pred, target_names=names, labels=labels, output_dict=True)
 
-        print(f"balanced_accuracy_score {stage} {balanced_accuracy_score(y_true=test_labels, y_pred=y_pred)}")
-        print(f"roc_auc_score {stage} {roc_auc_score(y_true=test_labels, y_score=y_proba, multi_class='ovr')}")
+        model = CalibratedClassifierCV(model)
+        model.fit(train_data, train_labels)
+        y_cal_proba = model.predict_proba(test_data)
+        y_cal_pred = model.predict(test_data)
+
+        report = classification_report(test_labels, y_cal_pred, target_names=names, labels=labels, output_dict=True)
+
+        balanced_accuracy = balanced_accuracy_score(y_true=test_labels, y_pred=y_cal_pred)
+        roc_auc = roc_auc_score(y_true=test_labels, y_score=y_cal_proba[:, 1])
+        f1 = f1_score(y_true=test_labels, y_pred=y_cal_pred)
+        metrics.append(name='balanced_accuracy', value=float(balanced_accuracy))
+        metrics.append(name='roc_auc', value=float(roc_auc))
+        metrics.append(name='f1', value=float(f1))
+        metrics.append(name='model', value=stage)
+
+        print("#### With calibration ####")
+        print(f'f1 score {stage}: {f1}')
+        print(f"balanced_accuracy_score {stage} {balanced_accuracy}")
+        print(f"roc_auc_score {stage} {roc_auc}")
 
         results = pd.DataFrame(report)
         save_dir_path = settings.results_dir / 'rf'
@@ -254,15 +278,18 @@ def eval_classification(target: str):
             os.makedirs(save_dir_path, exist_ok=True)
         results.to_csv(settings.results_dir / 'rf' / f'rf_classifier_report_{stage}.csv', index=True)
 
-        matrix = confusion_matrix(test_labels, y_pred, labels=labels, normalize='true')
+        matrix = confusion_matrix(test_labels, y_cal_pred, labels=labels, normalize='true')
         np.save(str(settings.results_dir / 'rf' / f'rf_classifier_train_x_{stage}.npy'), train_data)
         np.save(str(settings.results_dir / 'rf' / f'rf_classifier_train_y_{stage}.npy'), train_labels)
         np.save(str(settings.results_dir / 'rf' / f'rf_classifier_test_x_{stage}.npy'), test_data)
         np.save(str(settings.results_dir / 'rf' / f'rf_classifier_test_y_{stage}.npy'), test_labels)
-        np.save(str(settings.results_dir / 'rf' / f'rf_classifier_test_y_pred_{stage}.npy'), y_pred)
-        np.save(str(settings.results_dir / 'rf' / f'rf_classifier_test_y_proba_{stage}.npy'), y_proba)
+        np.save(str(settings.results_dir / 'rf' / f'rf_classifier_test_y_pred_{stage}.npy'), y_cal_pred)
+        np.save(str(settings.results_dir / 'rf' / f'rf_classifier_test_y_proba_{stage}.npy'), y_cal_proba)
         np.savez(str(settings.results_dir / 'rf' / f'rf_classifier_matrix_{stage}.npz'), matrix=matrix, labels=labels)
         joblib.dump(model, str(settings.results_dir / 'rf' / f'rf_classifier_{stage}.joblib'))
+
+    metrics = metrics.get_df()
+    metrics.to_csv(settings.results_dir / 'rf' / f'rf_classifier_metrics.csv', index=True)
 
 
 @click.command()
