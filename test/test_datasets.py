@@ -216,11 +216,12 @@ class TestSemanticDataModule(unittest.TestCase):
         self.assertTrue(len(data.get('spectra_a')) == len(data.get('spectra_b')) == len(data.get('seg_a'))
                         == len(data.get('seg_b')) == len(data.get('subjects_a')) == len(data.get('subjects_b'))
                         == len(data.get('image_ids_a')) == len(data.get('image_ids_b')))
-        labels = data.get('seg_a')
-        class_size = self.batch_size // len(torch.unique(labels))
-        prevalence_tolerance = self.batch_size % len(torch.unique(labels))
-        for label in torch.unique(labels):
-            np.testing.assert_allclose(len(labels[labels == label]), class_size, atol=prevalence_tolerance)
+        if self.balance_classes:
+            labels = data.get('seg_a')
+            class_size = self.batch_size // len(torch.unique(labels))
+            prevalence_tolerance = self.batch_size % len(torch.unique(labels))
+            for label in torch.unique(labels):
+                np.testing.assert_allclose(len(labels[labels == label]), class_size, atol=prevalence_tolerance)
 
     def test_val_dl(self):
         dl = self.dm.val_dataloader()
@@ -232,10 +233,10 @@ class TestSemanticDataModule(unittest.TestCase):
         self.assertTrue(len(data.get('spectra_b').size()) == 2)
         self.assertTrue(isinstance(data.get('seg_b'), torch.Tensor))
         self.assertTrue(isinstance(data.get('mapping'), dict))
-        self.assertTrue(isinstance(data.get('subjects_a'), str))
-        self.assertTrue(isinstance(data.get('subjects_b'), str))
-        self.assertTrue(isinstance(data.get('image_ids_a'), str))
-        self.assertTrue(isinstance(data.get('image_ids_b'), str))
+        self.assertTrue(isinstance(data.get('subjects_a'), np.ndarray))
+        self.assertTrue(isinstance(data.get('subjects_b'), np.ndarray))
+        self.assertTrue(isinstance(data.get('image_ids_a'), np.ndarray))
+        self.assertTrue(isinstance(data.get('image_ids_b'), np.ndarray))
         self.assertTrue(len(data.get('spectra_a')) == len(data.get('spectra_b')) == len(data.get('seg_a'))
                         == len(data.get('seg_b')))
 
