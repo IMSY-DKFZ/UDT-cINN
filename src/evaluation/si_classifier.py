@@ -134,8 +134,8 @@ def _load_train_clf_real_data(dm: Any, n_samples: int) -> (torch.Tensor, torch.T
         shuffle=False,
         num_workers=1,
         normalization='standardize',
-        data=dict(mean_a=None, std_a=None, mean_b=None, std_b=None, balance_classes=True,
-                  dataset_version='semantic_v2', choose_spectra='unique'),
+        data=dict(mean_a=None, std_a=None, mean_b=None, std_b=None, balance_classes=False,
+                  dataset_version='semantic_v2', choose_spectra='real_source'),
         # data stats loaded internally by loader
         noise_aug=False,
         noise_aug_level=0
@@ -181,7 +181,7 @@ def load_data(target: str = 'val') -> dict:
         shuffle=False,
         num_workers=1,
         normalization='standardize',
-        data=dict(mean_a=None, std_a=None, mean_b=None, std_b=None, balance_classes=True,
+        data=dict(mean_a=None, std_a=None, mean_b=None, std_b=None, balance_classes=False,
                   dataset_version='semantic_v2', choose_spectra='unique'),
         # data stats loaded internally by loader
         noise_aug=False,
@@ -244,31 +244,43 @@ def eval_classification(target: str):
     names = [mapping[str(k)] for k in labels]
     data = load_data(target=target)
     metrics = ExperimentResults()
+
+    test_data = data.get('test').get('x_real')
+    test_labels = data.get('test').get('y_real')
+
+    n_estimators = 100
+    calibration = True
+
+    print(f"\nNumber of RF estimators: {n_estimators}")
+    print(f"Calibrate model: {calibration}")
+
     for stage in tqdm(stages, desc="iterating stages"):
+        if stage not in ["cINN", "simulated", "real"]:
+            continue
         train_data = data.get('train').get(f'x_{stage}')
         train_labels = data.get('train').get(f'y_{stage}')
-        model = get_model(train_data, train_labels, n_jobs=-1, n_estimators=30)
-        # compute score on test set of real data
-        test_data = data.get('test').get('x_real')
-        test_labels = data.get('test').get('y_real')
+        model = get_model(train_data, train_labels, n_jobs=-1, n_estimators=n_estimators)
 
-        model = CalibratedClassifierCV(model)
-        model.fit(train_data, train_labels)
+        # compute score on test set of real data
+        if calibration:
+            model = CalibratedClassifierCV(model)
+            model.fit(train_data, train_labels)
+            print("\n#### With calibration ####")
+
         y_cal_proba = model.predict_proba(test_data)
         y_cal_pred = model.predict(test_data)
 
         report = classification_report(test_labels, y_cal_pred, target_names=names, labels=labels, output_dict=True)
 
         balanced_accuracy = balanced_accuracy_score(y_true=test_labels, y_pred=y_cal_pred)
-        roc_auc = roc_auc_score(y_true=test_labels, y_score=y_cal_proba[:, 1])
-        f1 = f1_score(y_true=test_labels, y_pred=y_cal_pred)
+        roc_auc = roc_auc_score(y_true=test_labels, y_score=y_cal_proba, multi_class="ovr")
+        f1 = f1_score(y_true=test_labels, y_pred=y_cal_pred, average="weighted")
         metrics.append(name='balanced_accuracy', value=float(balanced_accuracy))
         metrics.append(name='roc_auc', value=float(roc_auc))
         metrics.append(name='f1', value=float(f1))
         metrics.append(name='model', value=stage)
 
-        print("#### With calibration ####")
-        print(f'f1 score {stage}: {f1}')
+        print(f'\nf1 score {stage}: {f1}')
         print(f"balanced_accuracy_score {stage} {balanced_accuracy}")
         print(f"roc_auc_score {stage} {roc_auc}")
 
