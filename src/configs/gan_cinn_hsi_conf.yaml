@@ -42,7 +42,7 @@ data:
   data_dir_b: test_dir_b
   used_channels: 16          # int as index of list [700, 855, 10] or list of int as indices, e.g. [0, 3, 6, 15]
   log: False                 # indicate if data have been taken logarithmic
-  balance_classes: True
+  balance_classes: False
   choose_spectra: unique      # unique or sampled
 
 dis:
