@@ -167,7 +167,11 @@ class SemanticDataset(Dataset):
 
     def __len__(self):
         if self.test_set:
-            size = min(self.data_a_size, self.data_b_size)
+            # we always define the length based on the synthetic data during testing because we want to iterate over
+            # the entire test set in order to train later on the classifier
+            size = self.data_a_size
         else:
+            # during training, we define the length as the maximum because we want to iterate over all the real and all
+            # the synthetic data
             size = max(self.data_a_size, self.data_b_size)
         return size
