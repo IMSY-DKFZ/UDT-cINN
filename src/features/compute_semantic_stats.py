@@ -56,12 +56,14 @@ def load_data(dm: SemanticDataModule, target: str = 'real_source'):
 
 def get_stats():
     real_cfg = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, normalization="standardize",
-                               data=dict(mean_a=None, mean_b=None, std=None, std_b=None),
+                               data=dict(mean_a=None, mean_b=None, std=None, std_b=None,
+                                         dataset_version='semantic_v2', choose_spectra='unique'),
                                noise_aug=False, noise_aug_level=None))
     adapted_cfg = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, target="adapted", normalization="standardize",
-                                  data=dict(mean_a=None, mean_b=None, std=None, std_b=None),
+                                  data=dict(mean_a=None, mean_b=None, std=None, std_b=None,
+                                            dataset_version='semantic_v2', choose_spectra='unique'),
                                   noise_aug=False, noise_aug_level=None))
-    dm = SemanticDataModule(experiment_config=real_cfg, target_dataset='semantic_v2')
+    dm = SemanticDataModule(experiment_config=real_cfg)
     dm.setup(stage='train')
     adapted_dl = SemanticDataModule(experiment_config=adapted_cfg)
     adapted_dl.setup(stage='train')

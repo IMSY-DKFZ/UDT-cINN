@@ -126,13 +126,14 @@ def _load_train_clf_real_data(dm: Any, n_samples: int) -> (torch.Tensor, torch.T
         shuffle=False,
         num_workers=1,
         normalization='standardize',
-        data=dict(mean_a=None, std_a=None, mean_b=None, std_b=None, balance_classes=True),
+        data=dict(mean_a=None, std_a=None, mean_b=None, std_b=None, balance_classes=True,
+                  dataset_version='semantic_v2', choose_spectra='unique'),
         # data stats loaded internally by loader
         noise_aug=False,
         noise_aug_level=0
     )
     conf = DictConfig(conf)
-    dm = SemanticDataModule(experiment_config=conf, target='real_source', target_dataset='semantic_v2')
+    dm = SemanticDataModule(experiment_config=conf)
     dm.setup(stage="train")
     tdl = dm.train_dataloader()
     data_stats = tdl.dataset.exp_config.data
@@ -169,13 +170,14 @@ def load_data(target: str = 'val') -> dict:
         shuffle=False,
         num_workers=1,
         normalization='standardize',
-        data=dict(mean_a=None, std_a=None, mean_b=None, std_b=None, balance_classes=True),
+        data=dict(mean_a=None, std_a=None, mean_b=None, std_b=None, balance_classes=True,
+                  dataset_version='semantic_v2', choose_spectra='unique'),
         # data stats loaded internally by loader
         noise_aug=False,
         noise_aug_level=0
     )
     conf = DictConfig(conf)
-    dm = SemanticDataModule(experiment_config=conf, target='unique', target_dataset='semantic_v2')
+    dm = SemanticDataModule(experiment_config=conf)
     dm.ignore_classes = IGNORE_CLASSES
     dm.setup(stage='eval')
     # data_a refers to simulations while data_b refers to real data

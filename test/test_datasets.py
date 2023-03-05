@@ -59,9 +59,10 @@ class TestSemanticUnique(unittest.TestCase):
     def setUp(self) -> None:
         self.base_folder = settings.intermediates_dir / 'semantic_unique'
         self.config = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, normalization="standardize",
-                                      data=dict(mean_a=None, mean_b=None, std=None, std_b=None, balance_classes=True),
+                                      data=dict(mean_a=None, mean_b=None, std=None, std_b=None, balance_classes=True,
+                                                dataset_version='semantic_v2', choose_spectra='unique'),
                                       noise_aug=False, noise_aug_level=None))
-        self.dm = SemanticDataModule(experiment_config=self.config, target_dataset='semantic_v2', target='unique')
+        self.dm = SemanticDataModule(experiment_config=self.config)
         self.dm.setup(stage='train')
 
     def test_train_dl(self):
@@ -176,12 +177,13 @@ class TestSemanticDataModule(unittest.TestCase):
                     shuffle=False,
                     num_workers=1,
                     normalization='standardize',
-                    data=dict(mean_a=None, mean_b=None, std=None, std_b=None, balance_classes=self.balance_classes),
+                    data=dict(mean_a=None, mean_b=None, std=None, std_b=None, balance_classes=self.balance_classes,
+                              dataset_version='semantic_v2', choose_spectra='unique'),
                     noise_aug=True,
                     noise_aug_level=0.1
                     )
         conf = DictConfig(conf)
-        self.dm = SemanticDataModule(experiment_config=conf, target='unique', target_dataset='semantic_v2')
+        self.dm = SemanticDataModule(experiment_config=conf)
         self.dm.setup(stage='setup')
 
     def test_normalization(self):
@@ -299,12 +301,13 @@ class TestSemanticDataModule(unittest.TestCase):
                     shuffle=False,
                     num_workers=1,
                     normalization='standardize',
-                    data=dict(mean=None, std=None, balance_classes=balance_classes),
+                    data=dict(mean=None, std=None, balance_classes=balance_classes,
+                              dataset_version='semantic_v2', choose_spectra='unique'),
                     noise_aug=False,
                     noise_aug_level=0.1
                     )
         conf = DictConfig(conf)
-        dm = SemanticDataModule(experiment_config=conf, target_dataset='semantic_v2', target='unique')
+        dm = SemanticDataModule(experiment_config=conf)
         dm.setup(stage='train')
         loaders = [dm.train_dataloader(), dm.val_dataloader()]
         for loader in loaders:

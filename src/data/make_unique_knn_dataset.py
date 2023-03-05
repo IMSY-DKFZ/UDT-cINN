@@ -39,11 +39,12 @@ def find_unique_rows(x: torch.Tensor, desc: str = "") -> torch.Tensor:
 
 
 def make_unique_knn_dataset():
-    config = DictConfig({'data': {'mean_a': 0.1, 'std_a': 0.1, 'mean_b': 0.1, 'std_b': 0.1},
+    config = DictConfig({'data': {'mean_a': 0.1, 'std_a': 0.1, 'mean_b': 0.1, 'std_b': 0.1,
+                                  'dataset_version': 'semantic_v2', 'choose_spectra': 'unique'},
                          'normalization': 'standardize', 'shuffle': False, 'num_workers': 5,
                          'batch_size': 1000, 'noise_aug': False, 'noise_aug_level': None},
                         )
-    dm = SemanticDataModule(experiment_config=config, target_dataset='semantic_v2')
+    dm = SemanticDataModule(experiment_config=config)
     results_folder = dm.root_path
     dm.setup(stage='train')
     stages = {
@@ -54,7 +55,7 @@ def make_unique_knn_dataset():
         stages['test'] = dm.test_dataloader()
     del dm
 
-    dm_synthetic_real_soruce = SemanticDataModule(experiment_config=config, target_dataset='semantic_v2', target='real_source')
+    dm_synthetic_real_soruce = SemanticDataModule(experiment_config=config)
     # setting target=real_source loads real data associated with synthetic data in *_a variables of the class
     dm_synthetic_real_soruce.setup('train')
     synthetic_real_source_stages = {

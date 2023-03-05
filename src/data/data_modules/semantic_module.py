@@ -13,7 +13,7 @@ from src.utils.collate_function import collate_hsi
 
 
 class SemanticDataModule(pl.LightningDataModule):
-    def __init__(self, experiment_config: DictConfig, target='unique', target_dataset='semantic_v2'):
+    def __init__(self, experiment_config: DictConfig):
         """
         PyTorchLightning data loader. Each data loader feed the data as a dictionary containing the reflectances, the
         labels and a dictionary with mappings from labels (int) -> organ names (str).
@@ -46,8 +46,8 @@ class SemanticDataModule(pl.LightningDataModule):
         self.num_workers = experiment_config.num_workers
         self.batch_size = experiment_config.batch_size
         self.train_dataset, self.val_dataset, self.test_dataset = None, None, None
-        self.target = target
-        self.target_dataset = target_dataset
+        self.target = experiment_config.data.choose_spectra
+        self.target_dataset = experiment_config.data.dataset_version
         self.dimensions = 100
         self.data_stats = self.load_data_stats()
         self.ignore_classes = ['gallbladder']

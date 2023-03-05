@@ -15,7 +15,8 @@ np.random.seed(100)
 
 
 def calculate_redundancy():
-    config = DictConfig({'data': {'mean_a': 0.1, 'std_a': 0.1, 'mean_b': 0.1, 'std_b': 0.1},
+    config = DictConfig({'data': {'mean_a': 0.1, 'std_a': 0.1, 'mean_b': 0.1, 'std_b': 0.1,
+                                  'dataset_version': 'semantic_v2', 'choose_spectra': 'unique'},
                          'normalization': 'standardize', 'shuffle': False, 'num_workers': 5,
                          'batch_size': 1000, 'noise_aug': False, 'noise_aug_level': None},
                         )
@@ -86,7 +87,8 @@ def count_unique_rows(x: torch.Tensor, label: str) -> (int, list):
 
 
 def calculate_unique():
-    config = DictConfig({'data': {'mean_a': 0.1, 'std_a': 0.1, 'mean_b': 0.1, 'std_b': 0.1},
+    config = DictConfig({'data': {'mean_a': 0.1, 'std_a': 0.1, 'mean_b': 0.1, 'std_b': 0.1,
+                                  'dataset_version': 'semantic_v2', 'choose_spectra': 'unique'},
                          'normalization': 'standardize', 'shuffle': False, 'num_workers': 5,
                          'batch_size': 1000, 'noise_aug': False, 'noise_aug_level': None},
                         )
