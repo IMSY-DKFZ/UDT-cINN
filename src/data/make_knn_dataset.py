@@ -1,6 +1,7 @@
 import click
 import numpy as np
 import cuml
+import torch
 from htc import DataPath, LabelMapping
 from pathlib import Path
 from htc.tivita.DataPathMultiorgan import DataPathMultiorgan
@@ -15,6 +16,7 @@ from src.data.utils import get_organ_labels
 here = Path(__file__).parent
 
 np.random.seed(100)
+torch.manual_seed(100)
 
 
 def fit_knn(x: np.ndarray, **kwargs):

@@ -55,26 +55,29 @@ def load_data(dm: SemanticDataModule, target: str = 'real_source'):
 
 
 def get_stats():
-    real_cfg = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, normalization="standardize",
-                               data=dict(mean_a=None, mean_b=None, std=None, std_b=None,
-                                         dataset_version='semantic_v2', choose_spectra='unique'),
-                               noise_aug=False, noise_aug_level=None))
-    adapted_cfg = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, target="adapted", normalization="standardize",
-                                  data=dict(mean_a=None, mean_b=None, std=None, std_b=None,
-                                            dataset_version='semantic_v2', choose_spectra='unique'),
-                                  noise_aug=False, noise_aug_level=None))
-    dm = SemanticDataModule(experiment_config=real_cfg)
+    config = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, normalization="standardize",
+                             data=dict(mean_a=None, mean_b=None, std=None, std_b=None,
+                                       dataset_version='semantic_v2', choose_spectra='sampled',
+                                       balance_classes=False),
+                             noise_aug=False, noise_aug_level=None))
+    dm = SemanticDataModule(experiment_config=config)
     dm.setup(stage='train')
+
+    adapted_cfg = config.copy()
+    adapted_cfg.data.choose_spectra = 'adapted'
     adapted_dl = SemanticDataModule(experiment_config=adapted_cfg)
     adapted_dl.setup(stage='train')
+
     synthetic_real_source = load_data(dm=dm, target='real_source')
     synthetic_unique = load_data(dm=dm, target='unique')
+    synthetic_real_source_unique = load_data(dm=dm, target='real_source_unique')
+
     splits = {
         'train': dm.train_dataloader().dataset.data_b,
         'val': dm.val_dataloader().dataset.data_b,
         'train_synthetic_sampled': dm.train_dataloader().dataset.data_a,
-        'val_synthetic_sampled': dm.val_dataloader().dataset.data_a,
-        'train_synthetic_adapted': dm.train_dataloader().dataset.data_a,
+        'val_synthetic_sampled': adapted_dl.val_dataloader().dataset.data_a,
+        'train_synthetic_adapted': adapted_dl.train_dataloader().dataset.data_a,
         'val_synthetic_adapted': adapted_dl.val_dataloader().dataset.data_a,
         'train_synthetic_real_source': synthetic_real_source['train'],
         'val_synthetic_real_source': synthetic_real_source['val'],
@@ -82,6 +85,9 @@ def get_stats():
         'train_synthetic_unique': synthetic_unique['train'],
         'val_synthetic_unique': synthetic_unique['val'],
         'test_synthetic_unique': synthetic_unique['test'],
+        'train_synthetic_real_source_unique': synthetic_real_source_unique['train'],
+        'val_synthetic_real_source_unique': synthetic_real_source_unique['val'],
+        'test_synthetic_real_source_unique': synthetic_real_source_unique['test'],
     }
     with EnableTestData(dm):
         splits['test'] = dm.test_dataloader().dataset.data_b

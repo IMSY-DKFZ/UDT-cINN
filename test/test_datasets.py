@@ -97,6 +97,31 @@ class TestSemanticUnique(unittest.TestCase):
         assert x_unique_true.shape == x.shape
 
 
+class TestSemanticUniqueRealSource(unittest.TestCase):
+    def setUp(self) -> None:
+        self.base_folder = settings.intermediates_dir / 'semantic_unique'
+        self.config = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, normalization="standardize",
+                                      data=dict(mean_a=None, mean_b=None, std=None, std_b=None, balance_classes=True,
+                                                dataset_version='semantic_v2', choose_spectra='unique'),
+                                      noise_aug=False, noise_aug_level=None))
+        self.dm = SemanticDataModule(experiment_config=self.config)
+        self.dm.setup(stage='train')
+
+        self.config_source = self.config.copy()
+        self.config_source.data.choose_spectra = 'real_source_unique'
+        self.dm_source = SemanticDataModule(experiment_config=self.config_source)
+        self.dm_source.setup(stage='train')
+
+    def test_labels(self):
+        loaders = [self.dm.train_dataloader(), self.dm.val_dataloader()]
+        loaders_source = [self.dm_source.train_dataloader(), self.dm_source.val_dataloader()]
+        for loader, loader_source in zip(loaders, loaders_source):
+            for label in torch.unique(loader.dataset.seg_data_a):
+                n_label = len(loader.dataset.seg_data_a[loader.dataset.seg_data_a == label])
+                n_label_source = len(loader_source.dataset.seg_data_a[loader_source.dataset.seg_data_a == label])
+                assert n_label == n_label_source, f"{n_label}!={n_label_source} for {label}"
+
+
 class TestDataSplits(unittest.TestCase):
     def setUp(self) -> None:
         pass

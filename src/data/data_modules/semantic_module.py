@@ -164,29 +164,23 @@ class EnableTestData:
             settings.intermediates_dir / self.dm.target_dataset / f'test',
             exp_config=self.dm.exp_config,
             ignore_classes=self.dm.ignore_classes,
-            test_set=True)
-        self.dm.batch_samplers['test'] = BalancedBatchSampler(data_source=self.dm.test_dataset,
-                                                              batch_size=self.dm.batch_size,
-                                                              drop_last=True,
-                                                              classes=self.dm.test_dataset.seg_data_a.cpu().numpy(),
-                                                              )
+            test_set=True
+        )
 
         def test_data_loader():
-            if self.dm.exp_config.data.balance_classes:
-                dl = DataLoader(self.dm.test_dataset,
-                                num_workers=self.dm.num_workers,
-                                pin_memory=True,
-                                collate_fn=collate_hsi,
-                                batch_sampler=self.dm.batch_samplers['test']
-                                )
-            else:
-                dl = DataLoader(self.dm.test_dataset,
-                                num_workers=self.dm.num_workers,
-                                pin_memory=True,
-                                collate_fn=collate_hsi,
-                                drop_last=False,
-                                batch_size=self.dm.batch_size,
-                                )
+            """
+            the test data loader should not implement a balanced batch loader because the balancing is performed
+            by the si_classifier later on.
+
+            :return:
+            """
+            dl = DataLoader(self.dm.test_dataset,
+                            num_workers=self.dm.num_workers,
+                            pin_memory=True,
+                            collate_fn=collate_hsi,
+                            drop_last=False,
+                            batch_size=self.dm.batch_size,
+                            )
             return dl
 
         self.dm.__setattr__('test_dataloader', test_data_loader)
