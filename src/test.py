@@ -29,7 +29,8 @@ else:
     PYTHON_PATH = "/home/kris/Work/Repositories/miccai23/src"
 
 
-config_path = "/home/kris/Work/Data/DA_results/miccai/domain_adaptation_results/gan_cinn_hsi/2023_02_17_18_41_30/version_0/hparams.yaml"
+config_path = "/home/kris/Work/Data/DA_results/gan_cinn_hsi/2023_03_01_21_58_36/version_0/hparams.yaml"
+checkpoint = "/home/kris/Work/Data/DA_results/gan_cinn_hsi/2023_03_01_21_58_36/version_0/checkpoints/epoch=299-step=274800.ckpt"
 config = load_config(config_path)
 time_stamp = datetime.now()
 time_stamp = time_stamp.strftime("%Y_%m_%d_%H_%M_%S")
@@ -40,17 +41,24 @@ config["data_base_path"] = DATA_BASE_PATH
 
 parser = DomainAdaptationParser(config=config)
 config = parser.get_new_config()
-# config.label_noise = False
-# config.noise_aug = False
+
+config.checkpoint = checkpoint
+# config.noise_aug = True
+# config.noise_aug_level = 0.2
+# config.label_noise_level = 0.8
+# config.real_labels = "random_choice"
+# config.data.balance_classes = False
+
+config.test_run = True
 
 pl.seed_everything(config.seed)
 
 data_module = get_data_module(experiment_name=EXPERIMENT_NAME)
-enable_test_data = False
+
 if isinstance(data_module, tuple):
-    enable_test_data = True
     test_data_manager = data_module[1]
     data_module = data_module[0]
+
 model = get_model(experiment_name=EXPERIMENT_NAME)
 
 data_module = data_module(experiment_config=config)
@@ -64,6 +72,9 @@ trainer = pl.trainer.Trainer(accelerator='gpu', devices=1, max_epochs=config.epo
                              limit_val_batches=1,
                              gradient_clip_val=0.1, gradient_clip_algorithm="value",
                              deterministic=False)
-trainer.test(model=model,
-             ckpt_path="/home/kris/Work/Data/DA_results/miccai/domain_adaptation_results/gan_cinn_hsi/2023_02_17_18_41_30/version_0/checkpoints/epoch=699-step=641200.ckpt",
-             datamodule=data_module)
+
+if config.get("test_run"):
+    with test_data_manager(data_module):
+        trainer.test(model, ckpt_path=checkpoint, datamodule=data_module)
+else:
+    trainer.test(model, ckpt_path=checkpoint, datamodule=data_module)
