@@ -72,9 +72,9 @@ def plot_rf_results():
 def plot_confusion_matrix():
     stages = [
         'real',
-        'unit',
-        'sampled',
-        'adapted_inn'
+        'UNIT',
+        'simulated',
+        'cINN'
     ]
     mapping = get_label_mapping()
     for stage in stages:

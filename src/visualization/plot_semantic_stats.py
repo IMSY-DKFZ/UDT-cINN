@@ -1,13 +1,16 @@
 import click
 import json
-from htc import DataPath, LabelMapping
 import pandas as pd
-from tqdm import tqdm
 import numpy as np
 import plotly.express as px
+from tqdm import tqdm
+from htc import DataPath
+from omegaconf import DictConfig
 
 from src import settings
 from src.data.make_knn_dataset import split_dataset
+from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
+from src.utils.susi import ExperimentResults
 
 
 def get_organ_labels():
@@ -30,7 +33,7 @@ def plot_organ_statistics():
         mapping = settings.mapping
         for p in tqdm(paths, desc=k):
             seg = p.read_segmentation()
-            organ_id = [i for i in np.unique(seg) if mapping[str(i)] in labels["organ_labels"]]
+            organ_id = [i for i in np.unique(seg) if str(i) in mapping and mapping[str(i)] in labels["organ_labels"]]
             organs = [mapping[str(i)] for i in organ_id]
             spectra_count = [(seg == i).sum() for i in organ_id]
             results['organ'] += organs
@@ -56,14 +59,53 @@ def plot_organ_statistics():
     fig.update_layout(font_size=16, font_family='Whitney Book', margin=dict(l=20, r=20, t=20, b=20))
     fig.write_html(settings.figures_dir / 'semantic_data_splits.html')
     fig.write_image(settings.figures_dir / 'semantic_data_splits.pdf')
+    fig.write_image(settings.figures_dir / 'semantic_data_splits.png')
     results_count.to_csv(settings.figures_dir / 'semantic_data_splits.csv')
+
+
+def plot_organ_unique_statistics():
+    config = DictConfig(dict(shuffle=True, num_workers=2, batch_size=100, normalization="standardize",
+                             data=dict(mean_a=None, mean_b=None, std=None, std_b=None),
+                             noise_aug=False, noise_aug_level=None))
+    dm = SemanticDataModule(experiment_config=config, target_dataset='semantic_v2', target='unique')
+    dm.setup(stage='train')
+    stages = {
+        'train': dm.train_dataloader(),
+        'val': dm.val_dataloader()
+    }
+    with EnableTestData(dm):
+        stages['test'] = dm.test_dataloader()
+    results = ExperimentResults()
+    mapping = settings.mapping
+    for stage, dl in stages.items():
+        y = dl.dataset.seg_data_a.cpu().numpy()
+        for label in np.unique(y):
+            results.append(name="stage", value=stage)
+            results.append(name="organ", value=mapping[str(label)])
+            results.append(name="value", value=len(y[y == label]))
+    df = results.get_df()
+
+    fig = px.bar(data_frame=df,
+                 x="organ",
+                 y="value",
+                 color="organ",
+                 template="plotly_white",
+                 category_orders=dict(stage=["train", "val", "test"]),
+                 facet_col="stage")
+    fig.update_layout(font_size=16, font_family='Liberatinus Serif', margin=dict(l=20, r=20, t=20, b=20))
+    fig.write_html(settings.figures_dir / 'semantic_unique_data_splits.html')
+    fig.write_image(settings.figures_dir / 'semantic_unique_data_splits.pdf')
+    fig.write_image(settings.figures_dir / 'semantic_unique_data_splits.png')
 
 
 @click.command()
 @click.option('--describe', is_flag=True, help="plot the organ distribution for each pig on each datatest split")
-def main(describe: bool):
+@click.option('--describe_unique', is_flag=True, help="plot the organ distribution for each pig on each datatest split")
+def main(describe: bool, describe_unique: bool):
     if describe:
         plot_organ_statistics()
+    if describe_unique:
+        plot_organ_unique_statistics()
 
 
 if __name__ == '__main__':

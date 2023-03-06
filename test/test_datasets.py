@@ -130,9 +130,9 @@ class TestDataSplits(unittest.TestCase):
         train_folder = settings.intermediates_dir / 'semantic_v2' / 'train'
         val_folder = settings.intermediates_dir / 'semantic_v2' / 'val'
         test_folder = settings.intermediates_dir / 'semantic_v2' / 'test'
-        train_synthetic_folder = settings.intermediates_dir / 'semantic_v2' / 'train_synthetic_sampled'
-        val_synthetic_folder = settings.intermediates_dir / 'semantic_v2' / 'val_synthetic_sampled'
-        test_synthetic_folder = settings.intermediates_dir / 'semantic_v2' / 'test_synthetic_sampled'
+        train_synthetic_folder = settings.intermediates_dir / 'semantic_v2' / 'train_synthetic_unique'
+        val_synthetic_folder = settings.intermediates_dir / 'semantic_v2' / 'val_synthetic_unique'
+        test_synthetic_folder = settings.intermediates_dir / 'semantic_v2' / 'test_synthetic_unique'
 
         train_files = list(train_folder.glob('*.npy'))
         val_files = list(val_folder.glob('*.npy'))
