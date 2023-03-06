@@ -128,16 +128,16 @@ def filter_data(df: pd.DataFrame):
 
 
 def plot_semantic_spectra():
-    inn_results = load_inn_results(folder='gan_cinn_hsi/2023_02_24_13_43_17/testing/generated_spectra_data')
+    inn_results = load_inn_results(folder='inn/generated_spectra_data')
     inn_agg = agg_data(inn_results)
     del inn_results
-    unit_results = load_inn_results(folder='unit/2023_02_27_21_46_33/testing/generated_spectra_data')
+    unit_results = load_inn_results(folder='unit/generated_spectra_data')
     unit_agg = agg_data(unit_results)
     del unit_results
 
-    data = load_data(splits=['val', 'val_synthetic_sampled'])
-    real_agg = filter_data(data.get('val'))
-    simulated_agg = filter_data(data.get('val_synthetic_sampled'))
+    data = load_data(splits=['test', 'test_synthetic_unique'])
+    real_agg = filter_data(data.get('test'))
+    simulated_agg = filter_data(data.get('test_synthetic_unique'))
     real_agg['dataset'] = 'real'
     simulated_agg['dataset'] = 'simulated'
     inn_agg['dataset'] = 'inn'
@@ -166,14 +166,14 @@ def plot_semantic_spectra():
 
 def plot_knn_difference():
     # load and aggregate data
-    inn_results = load_inn_results(folder='gan_cinn_hsi/2023_02_24_13_43_17/testing/generated_spectra_data')
+    inn_results = load_inn_results(folder='inn/generated_spectra_data')
     inn_agg = agg_data(inn_results).groupby(['organ', 'wavelength'], as_index=True).reflectance.median()
     del inn_results
-    data = load_data(splits=['val', 'val_synthetic_sampled'])
-    real_agg = agg_data(data.get('val')).groupby(['organ', 'wavelength'], as_index=True).reflectance.median()
-    simulated_agg = agg_data(data.get('val_synthetic_sampled')).groupby(['organ', 'wavelength'],
+    data = load_data(splits=['test', 'test_synthetic_unique'])
+    real_agg = agg_data(data.get('test')).groupby(['organ', 'wavelength'], as_index=True).reflectance.median()
+    simulated_agg = agg_data(data.get('test_synthetic_unique')).groupby(['organ', 'wavelength'],
                                                                         as_index=True).reflectance.median()
-    unit_results = load_inn_results(folder='unit/2023_02_27_21_46_33/testing/generated_spectra_data')
+    unit_results = load_inn_results(folder='unit/generated_spectra_data')
     unit_agg = agg_data(unit_results).groupby(['organ', 'wavelength'], as_index=True).reflectance.median()
     del unit_results
     assert inn_agg.shape == real_agg.shape == simulated_agg.shape == unit_agg.shape
@@ -189,7 +189,7 @@ def plot_knn_difference():
     diff_unit['data'] = "real - unit"
 
     n_classes = len(diff_simulated.organ.unique())
-    df = pd.concat([diff_inn, diff_simulated, diff_unit], sort=True, ignore_index=True, axis=0)
+    df = pd.concat([diff_inn, diff_simulated], sort=True, ignore_index=True, axis=0)
     # plot data
     fig = px.box(data_frame=df,
                  x="data",
@@ -212,10 +212,10 @@ def plot_knn_difference():
 
 
 def plot_pca():
-    inn_results = load_inn_results(folder='gan_cinn_hsi/2023_02_24_13_43_17/testing/generated_spectra_data')
+    inn_results = load_inn_results(folder='inn/generated_spectra_data')
     inn_agg = agg_data(inn_results)
     del inn_results
-    unit_results = load_inn_results(folder='unit/2023_02_27_21_46_33/testing/generated_spectra_data')
+    unit_results = load_inn_results(folder='unit/generated_spectra_data')
     unit_agg = agg_data(unit_results)
     del unit_results
     data = load_data(splits=['val', 'val_synthetic_sampled'])

@@ -12,10 +12,10 @@ from src.visualization.templates import cmap_qualitative, cmap_qualitative_diff
 
 def load_data() -> pd.DataFrame:
     sources = [
-        ('simulated', '/media/menjivar/Extreme SSD/MICCAI_23/results/photoacoustics/good_simulations/test'),
-        ('real', '/media/menjivar/Extreme SSD/MICCAI_23/results/photoacoustics/real_images/validation'),
-        ('inn', '/media/menjivar/Extreme SSD/MICCAI_23/results/photoacoustics/2023_01_23_22_47_44/testing/training'),
-        ('unit', '/media/menjivar/Extreme SSD/MICCAI_23/results/photoacoustics/2023_02_18_15_05_06/testing/training'),
+        ('simulated', "/home/kris/Work/Data/domain_adaptation_simulations/min_max_preprocessed_data_sqrt_ms/good_simulations/test"),
+        ('real', '/home/kris/Work/Data/domain_adaptation_simulations/min_max_preprocessed_data_sqrt_ms/real_images/test'),
+        ('inn', '/home/kris/Work/Data/DA_results/Ablation_Study/PAI/Domain_and_Tissue_labels_as_conditioning/cINN/2023_02_28_19_27_48/testing/training'),
+        ('unit', '/home/kris/Work/Data/DA_results/Ablation_Study/PAI/Domain_and_Tissue_labels_as_conditioning/UNIT/2023_02_28_19_27_12/testing/training'),
     ]
     results = ExperimentResults()
     for name, path in sources:
