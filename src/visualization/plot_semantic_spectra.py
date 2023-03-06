@@ -189,7 +189,7 @@ def plot_knn_difference():
     diff_unit['data'] = "real - unit"
 
     n_classes = len(diff_simulated.organ.unique())
-    df = pd.concat([diff_inn, diff_simulated], sort=True, ignore_index=True, axis=0)
+    df = pd.concat([diff_inn, diff_simulated, diff_unit], sort=True, ignore_index=True, axis=0)
     # plot data
     fig = px.box(data_frame=df,
                  x="data",
