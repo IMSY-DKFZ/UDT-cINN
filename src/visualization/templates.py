@@ -15,6 +15,14 @@ cmap_qualitative = {
     'real - simulated': "#911eb4",
 }
 
+cmap_qualitative.update(
+    {
+        'UNIT<sub>Y</sub>': cmap_qualitative['UNIT'],
+        'cINN<sub>D</sub>': cmap_qualitative['cINN'],
+        'cINN<sub>DY</sub>': cmap_qualitative['cINN']
+     }
+)
+
 cmap_qualitative_diff = {
     'real - simulated': cmap_qualitative['simulated'],
     'real - inn': cmap_qualitative['inn'],
