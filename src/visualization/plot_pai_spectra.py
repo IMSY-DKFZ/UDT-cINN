@@ -60,18 +60,18 @@ def plot_diff():
     df_inn = df[df.data == 'inn'].copy().groupby(['tissue', 'wavelength'], as_index=True).pai_signal.median()
     df_unit = df[df.data == 'unit'].copy().groupby(['tissue', 'wavelength'], as_index=True).pai_signal.median()
 
-    diff_simulated = ((df_real - df_simulated).abs() / df_real).reset_index().dropna()
+    diff_simulated = ((df_real - df_simulated).abs()).reset_index().dropna()
     diff_simulated['source'] = 'real - simulated'
-    diff_inn = ((df_real - df_inn).abs() / df_real).reset_index().dropna()
+    diff_inn = ((df_real - df_inn).abs()).reset_index().dropna()
     diff_inn['source'] = 'real - inn'
-    diff_unit = ((df_real - df_unit).abs() / df_real).reset_index().dropna()
+    diff_unit = ((df_real - df_unit).abs()).reset_index().dropna()
     diff_unit['source'] = 'real - unit'
 
     diff_df = pd.concat([diff_simulated, diff_unit, diff_inn], sort=True, ignore_index=True, axis=0)
-    diff_df.rename({'pai_signal': 'difference [%]'}, axis=1, inplace=True)
+    diff_df.rename({'pai_signal': 'difference'}, axis=1, inplace=True)
     fig, _ = line(data_frame=diff_df,
                   x="wavelength",
-                  y="difference [%]",
+                  y="difference",
                   color="source",
                   facet_col="tissue",
                   color_discrete_map=cmap_qualitative_diff

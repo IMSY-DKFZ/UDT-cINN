@@ -178,14 +178,14 @@ def plot_knn_difference():
     del unit_results
     assert inn_agg.shape == real_agg.shape == simulated_agg.shape == unit_agg.shape
     # compute differences
-    diff_simulated = ((real_agg - simulated_agg).abs() / real_agg).reset_index().dropna()
-    diff_simulated.rename({'reflectance': 'difference [%]'}, axis=1, inplace=True)
+    diff_simulated = ((real_agg - simulated_agg).abs()).reset_index().dropna()
+    diff_simulated.rename({'reflectance': 'difference'}, axis=1, inplace=True)
     diff_simulated['data'] = 'real - simulated'
-    diff_inn = ((real_agg - inn_agg).abs() / real_agg).reset_index().dropna()
-    diff_inn.rename({'reflectance': 'difference [%]'}, axis=1, inplace=True)
+    diff_inn = ((real_agg - inn_agg).abs()).reset_index().dropna()
+    diff_inn.rename({'reflectance': 'difference'}, axis=1, inplace=True)
     diff_inn['data'] = "real - inn"
-    diff_unit = ((real_agg - unit_agg).abs() / real_agg).reset_index().dropna()
-    diff_unit.rename({'reflectance': 'difference [%]'}, axis=1, inplace=True)
+    diff_unit = ((real_agg - unit_agg).abs()).reset_index().dropna()
+    diff_unit.rename({'reflectance': 'difference'}, axis=1, inplace=True)
     diff_unit['data'] = "real - unit"
 
     n_classes = len(diff_simulated.organ.unique())
@@ -193,7 +193,7 @@ def plot_knn_difference():
     # plot data
     fig = px.box(data_frame=df,
                  x="data",
-                 y="difference [%]",
+                 y="difference",
                  color="data",
                  facet_col="organ",
                  facet_col_wrap=min(n_classes, 5),
