@@ -33,7 +33,7 @@ if run_by_bash:
     PYTHON_PATH = os.environ["PYTHON_PATH"]
 
 else:
-    EXPERIMENT_NAME = "gan_cinn_hsi"
+    EXPERIMENT_NAME = "alignflow"
     SAVE_DATA_PATH = "/home/kris/Work/Data/DA_results"
     DATA_BASE_PATH = "/home/kris/Work/Data/domain_adaptation_simulations"
     PYTHON_PATH = "/home/kris/Work/Repositories/miccai23/src"
@@ -54,7 +54,7 @@ config = parser.get_new_config()
 pl.seed_everything(config.seed)
 
 data_module = get_data_module(experiment_name=EXPERIMENT_NAME)
-enable_test_data = False
+enable_test_data = True
 if isinstance(data_module, tuple):
     enable_test_data = True
     test_data_manager = data_module[1]

@@ -31,7 +31,10 @@ class DomainAdaptationTrainerBasePA(pl.LightningModule, ABC):
         total_loss = 0
         for loss_name, loss_value in losses_dict.items():
             total_loss += loss_value
-            losses_dict[loss_name] = loss_value.detach()
+            try:
+                losses_dict[loss_name] = loss_value.detach()
+            except AttributeError:
+                losses_dict[loss_name] = loss_value
         losses_dict[total_loss_key] = total_loss
         return losses_dict
 
