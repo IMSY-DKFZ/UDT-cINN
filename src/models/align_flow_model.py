@@ -426,7 +426,7 @@ class CouplingLayer(nn.Module):
             x_b = F.relu(torch.cat((x_b, -x_b, b), dim=1))
             st = self.st_net(x_b)
             s, t = st.chunk(2, dim=1)
-            s = self.s_scale * torch.tanh(s) + self.s_shift
+            s = self.s_scale * s + self.s_shift
             s = s * (1. - b)
             t = t * (1. - b)
 
@@ -455,7 +455,7 @@ class CouplingLayer(nn.Module):
             st = F.relu(torch.cat((st, -st), dim=1))
             st = self.st_net(st)
             s, t = st.chunk(2, dim=1)
-            s = self.s_scale * torch.tanh(s) + self.s_shift
+            s = self.s_scale * s + self.s_shift
 
             # Scale and translate
             if rev:
@@ -862,21 +862,21 @@ class Flow2Flow(nn.Module):
         """No-op. We do the forward pass in `backward_g`."""
         pass
 
-    def test(self):
-        """Run a forward pass through the generator for test inference.
-        Used during test inference only, as this throws away forward-pass values,
-        which would be needed for backprop.
-        Important: Call `set_inputs` prior to each successive call to `test`.
-        """
-        # Disable auto-grad because we will not backprop
-        with torch.no_grad():
-            src2lat, _ = self.g_src(self.src, rev=False)
-            src2lat2tgt, _ = self.g_tgt(src2lat, rev=True)
-            self.src2tgt = torch.tanh(src2lat2tgt)
-
-            tgt2lat, _ = self.g_tgt(self.tgt, rev=False)
-            tgt2lat2src, _ = self.g_src(tgt2lat, rev=True)
-            self.tgt2src = torch.tanh(tgt2lat2src)
+    # def test(self):
+    #     """Run a forward pass through the generator for test inference.
+    #     Used during test inference only, as this throws away forward-pass values,
+    #     which would be needed for backprop.
+    #     Important: Call `set_inputs` prior to each successive call to `test`.
+    #     """
+    #     # Disable auto-grad because we will not backprop
+    #     with torch.no_grad():
+    #         src2lat, _ = self.g_src(self.src, rev=False)
+    #         src2lat2tgt, _ = self.g_tgt(src2lat, rev=True)
+    #         self.src2tgt = torch.tanh(src2lat2tgt)
+    #
+    #         tgt2lat, _ = self.g_tgt(self.tgt, rev=False)
+    #         tgt2lat2src, _ = self.g_src(tgt2lat, rev=True)
+    #         self.tgt2src = torch.tanh(tgt2lat2src)
 
     def _forward_d(self, d, real_img, fake_img):
         """Forward  pass for one discriminator."""
@@ -916,7 +916,7 @@ class Flow2Flow(nn.Module):
 
         # Finish src -> lat -> tgt: Say target is real to invert loss
         self.src2tgt, _ = self.g_tgt(self.src2lat, rev=True)
-        self.src2tgt = torch.tanh(self.src2tgt)
+        # self.src2tgt = torch.tanh(self.src2tgt)
 
         # Forward tgt -> lat: Get MLE loss
         self.tgt2lat, sldj_tgt2lat = self.g_tgt(self.tgt, rev=False)
@@ -924,7 +924,7 @@ class Flow2Flow(nn.Module):
 
         # Finish tgt -> lat -> src: Say source is real to invert loss
         self.tgt2src, _ = self.g_src(self.tgt2lat, rev=True)
-        self.tgt2src = torch.tanh(self.tgt2src)
+        # self.tgt2src = torch.tanh(self.tgt2src)
 
         # Jacobian Clamping loss
         if self.clamp_jacobian:
