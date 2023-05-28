@@ -13,7 +13,7 @@ packages = [
 # Requirements
 [tool.poetry.dependencies]
 python = ">=3.8"
-FrEIA = { git = "https://github.com/VLL-HD/FrEIA.git" }
+# FrEIA = { git = "https://github.com/VLL-HD/FrEIA.git" }
 click = "*"
 Sphinx = "*"
 coverage = "*"
