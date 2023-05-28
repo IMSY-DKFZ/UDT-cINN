@@ -426,7 +426,7 @@ class CouplingLayer(nn.Module):
             x_b = F.relu(torch.cat((x_b, -x_b, b), dim=1))
             st = self.st_net(x_b)
             s, t = st.chunk(2, dim=1)
-            s = self.s_scale * s + self.s_shift
+            s = self.s_scale * torch.tanh(s) + self.s_shift
             s = s * (1. - b)
             t = t * (1. - b)
 
@@ -455,7 +455,7 @@ class CouplingLayer(nn.Module):
             st = F.relu(torch.cat((st, -st), dim=1))
             st = self.st_net(st)
             s, t = st.chunk(2, dim=1)
-            s = self.s_scale * s + self.s_shift
+            s = self.s_scale * torch.tanh(s) + self.s_shift
 
             # Scale and translate
             if rev:
