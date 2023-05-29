@@ -80,7 +80,7 @@ class VariationalAutoencoderHSI(nn.Module):
         return eps.mul(std).add_(mu)
 
     def forward(self, x, full_output=False):
-        mu, logvar = self.encode(x.view(-1, 100))
+        mu, logvar = self.encode(x)
         # z = self.reparameterize(mu, logvar)
         # if full_output:
         #     out = self.decode(z), mu, logvar
