@@ -81,9 +81,9 @@ class VariationalAutoencoderHSI(nn.Module):
 
     def forward(self, x, full_output=False):
         mu, logvar = self.encode(x.view(-1, 100))
-        z = self.reparameterize(mu, logvar)
-        if full_output:
-            out = self.decode(z), mu, logvar
-        else:
-            out = self.decode(z)
+        # z = self.reparameterize(mu, logvar)
+        # if full_output:
+        #     out = self.decode(z), mu, logvar
+        # else:
+        out = self.decode(mu + logvar)
         return out
