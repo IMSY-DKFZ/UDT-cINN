@@ -1,6 +1,6 @@
 experiment_name: cycle_gan_hsi
 
-epochs: 1000
+epochs: 300
 seed: 42
 num_workers: 16
 shuffle: 1
