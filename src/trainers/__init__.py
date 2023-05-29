@@ -11,6 +11,7 @@ from src.trainers.gan_conditional_inn_trainer_hsi import GanCondinitionalDomainA
 from src.trainers.unit_trainer_hsi import UnitHSI
 from src.trainers.waic_trainer import WAICTrainer
 from src.trainers.cycle_gan_trainer import CycleGANTrainer
+from src.trainers.cycle_gan_hsi_trainer import CycleGANHSITrainer
 from src.trainers.waic_hsi_trainer import WAICTrainerHSI
 from src.trainers.alignflow_trainer import AlignFlowTrainer
 
@@ -25,6 +26,7 @@ def get_model(experiment_name: str):
         "unit_hsi": UnitHSI,
         "unit": UNIT,
         "cycle_gan": CycleGANTrainer,
+        "cycle_gan_hsi": CycleGANHSITrainer,
         "waic": WAICTrainer,
         "waic_hsi": WAICTrainerHSI,
         "alignflow": AlignFlowTrainer,
