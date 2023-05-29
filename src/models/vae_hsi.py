@@ -79,7 +79,11 @@ class VariationalAutoencoderHSI(nn.Module):
         eps = torch.randn_like(std)
         return eps.mul(std).add_(mu)
 
-    def forward(self, x):
+    def forward(self, x, full_output=False):
         mu, logvar = self.encode(x.view(-1, 100))
         z = self.reparameterize(mu, logvar)
-        return self.decode(z), mu, logvar
+        if full_output:
+            out = self.decode(z), mu, logvar
+        else:
+            out = self.decode(z)
+        return out

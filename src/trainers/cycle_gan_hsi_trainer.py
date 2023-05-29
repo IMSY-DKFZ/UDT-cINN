@@ -17,8 +17,8 @@ class CycleGANHSITrainer(DomainAdaptationTrainerBaseHSI):
         if self.config.condition == "segmentation":
             self.config.gen.conditional_input_dim = self.dimensions + self.config.data.n_classes
 
-        self.gen_a = VariationalAutoencoderHSI(config=experiment_config.gen, input_dim=self.dimensions)
-        self.gen_b = VariationalAutoencoderHSI(config=experiment_config.gen, input_dim=self.dimensions)
+        self.gen_ab = VariationalAutoencoderHSI(config=experiment_config.gen, input_dim=self.dimensions)
+        self.gen_ba = VariationalAutoencoderHSI(config=experiment_config.gen, input_dim=self.dimensions)
 
         self.dis_a = DiscriminatorHSI(self.config.dis, self.dimensions)
         self.dis_b = DiscriminatorHSI(self.config.dis, self.dimensions)
@@ -30,9 +30,9 @@ class CycleGANHSITrainer(DomainAdaptationTrainerBaseHSI):
 
     def forward(self, inp, mode="a", *args, **kwargs):
         if mode == "a":
-            out = self.gen_a(inp)
+            out = self.gen_ab(inp)
         elif mode == "b":
-            out = self.gen_b(inp)
+            out = self.gen_ba(inp)
         else:
             raise AttributeError("Specify either mode 'a' or 'b'!")
         return out
@@ -152,11 +152,11 @@ class CycleGANHSITrainer(DomainAdaptationTrainerBaseHSI):
                                               labels_size=spectra_a[1].size())
             seg_b = seg_b.cuda()
 
-        spectra_ab = self.gen_a(spectra_a if not conditioning else torch.cat([spectra_a[0], seg_a], dim=1))
-        spectra_ba = self.gen_b(spectra_b if not conditioning else torch.cat([spectra_b, seg_b], dim=1))
+        spectra_ab = self.gen_ab(spectra_a if not conditioning else torch.cat([spectra_a[0], seg_a], dim=1))
+        spectra_ba = self.gen_ba(spectra_b if not conditioning else torch.cat([spectra_b, seg_b], dim=1))
 
-        spectra_aba = self.gen_b(spectra_ab if not conditioning else torch.cat([spectra_ab, seg_a], dim=1))
-        spectra_bab = self.gen_a(spectra_ba if not conditioning else torch.cat([spectra_ba, seg_a], dim=1))
+        spectra_aba = self.gen_ba(spectra_ab if not conditioning else torch.cat([spectra_ab, seg_a], dim=1))
+        spectra_bab = self.gen_ab(spectra_ba if not conditioning else torch.cat([spectra_ba, seg_a], dim=1))
 
         spectra_a = spectra_a.cpu().numpy()[0] if not conditioning else spectra_a[0].cpu().numpy()[0]
         spectra_b = spectra_b.cpu().numpy()[0]

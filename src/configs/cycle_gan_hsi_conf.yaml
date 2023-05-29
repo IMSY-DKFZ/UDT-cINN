@@ -1,4 +1,4 @@
-experiment_name: cycle_gan
+experiment_name: cycle_gan_hsi
 
 epochs: 1000
 seed: 42
@@ -9,7 +9,7 @@ sc_weight: 0.1
 
 # optimization options
 
-batch_size: 15                 # batch size
+batch_size: 10000                 # batch size
 weight_decay: 0.0001           # weight decay
 beta1: 0.9                    # Adam parameter
 beta2: 0.999                  # Adam parameter
@@ -29,7 +29,7 @@ recon_criterion: mse
 noise_aug: True
 noise_aug_level: 0.1
 normalization: min_max
-condition: none
+condition: None
 label_noise: True
 label_noise_level: 0.2
 real_labels: constant
