@@ -1,6 +1,6 @@
 experiment_name: cycle_gan_hsi
 
-epochs: 300
+epochs: 600
 seed: 42
 num_workers: 16
 shuffle: 1
@@ -9,7 +9,7 @@ sc_weight: 0.1
 
 # optimization options
 
-batch_size: 10000                 # batch size
+batch_size: 50000                 # batch size
 weight_decay: 0.0001           # weight decay
 beta1: 0.9                    # Adam parameter
 beta2: 0.999                  # Adam parameter
@@ -36,10 +36,10 @@ real_labels: constant
 
 # model options
 gen:
-  max_dim: 500                     # number of filters in extraction layers
-  min_dim: 20                     # number of filters in the bottommost layer
+  max_dim: 1000                     # number of filters in extraction layers
+  min_dim: 100                     # number of filters in the bottommost layer
   activ: relu                 # activation function [relu/lrelu/prelu/selu/tanh]
-  n_layers: 4                 # number of extraction layers
+  n_layers: 8                 # number of extraction layers
 dis:
   dim: 64                     # number of filters in the bottommost layer
   normalization: none                  # normalization layer [none/bn/in/ln]
