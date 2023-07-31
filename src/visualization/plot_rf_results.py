@@ -8,6 +8,7 @@ from functools import partial
 
 from src import settings
 from src.data.utils import get_label_mapping
+from src.visualization.templates import cmap_qualitative as cmaps
 
 METRICS_PROCESSED = []
 
@@ -36,9 +37,9 @@ def plot_dots(tr, data: pd.DataFrame, fig: go.Figure):
 def plot_rf_results():
     stages = [
         'real',
-        'unit',
-        'sampled',
-        'adapted_inn'
+        'UNIT',
+        'simulated',
+        'cINN'
     ]
     results = []
     for stage in stages:
@@ -85,7 +86,7 @@ def plot_confusion_matrix():
         names = [mapping.get(str(l)) for l in labels]
         fig = px.imshow(matrix,
                         text_auto='.2f',
-                        color_continuous_scale='Greens',
+                        color_continuous_scale=[[0, "white"], [1, cmaps[stage]]],
                         zmin=0,
                         zmax=1,
                         )
@@ -111,7 +112,8 @@ def plot_confusion_matrix():
 
 
 @click.command()
-@click.option('--rf', is_flag=True, help="plot random forest classification results")
+@click.option('--rf', is_flag=True, help="plot random forest classification results for HSI")
+@click.option('--rf_pa', is_flag=True, help="plot random forest classification results for PAI")
 def main(rf: bool):
     if rf:
         plot_confusion_matrix()
