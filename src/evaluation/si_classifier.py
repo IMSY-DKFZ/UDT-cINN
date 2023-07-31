@@ -309,7 +309,7 @@ def eval_classification(target: str, balance_classes: bool):
 
     n_estimators = 100
     calibration = True
-    per_class_metrics = True
+    per_class_metrics = False
 
     print(f"\nNumber of RF estimators: {n_estimators}")
     print(f"Calibrate model: {calibration}")
