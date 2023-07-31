@@ -23,7 +23,7 @@ if run_by_bash:
     PYTHON_PATH = os.environ["PYTHON_PATH"]
 
 else:
-    EXPERIMENT_NAME = "gan_cinn_hsi"
+    EXPERIMENT_NAME = "gan_cinn"
     SAVE_DATA_PATH = "/home/kris/Work/Data/DA_results"
     DATA_BASE_PATH = "/home/kris/Work/Data/domain_adaptation_simulations"
     PYTHON_PATH = "/home/kris/Work/Repositories/miccai23/src"
@@ -62,6 +62,11 @@ if isinstance(data_module, tuple):
 model = get_model(experiment_name=EXPERIMENT_NAME)
 
 data_module = data_module(experiment_config=config)
+enable_test_data = True
+if isinstance(data_module, tuple):
+    enable_test_data = True
+    test_data_manager = data_module[1]
+    data_module = data_module[0]
 model = model(experiment_config=config)
 logger = TensorBoardLogger(save_dir=save_path, name=time_stamp)
 logger.log_hyperparams(config)
@@ -73,8 +78,4 @@ trainer = pl.trainer.Trainer(accelerator='gpu', devices=1, max_epochs=config.epo
                              gradient_clip_val=0.1, gradient_clip_algorithm="value",
                              deterministic=False)
 
-if config.get("test_run"):
-    with test_data_manager(data_module):
-        trainer.test(model, ckpt_path=checkpoint, datamodule=data_module)
-else:
-    trainer.test(model, ckpt_path=checkpoint, datamodule=data_module)
+trainer.test(model, datamodule=data_module)
