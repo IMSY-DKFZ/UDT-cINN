@@ -7,10 +7,10 @@ downsampling_levels: 3
 downsampling_type: haar
 clamping: 1
 epochs: 400
-seed: 46
+seed: 42
 
 
-batch_size: 20
+batch_size: 30
 num_workers: 16
 shuffle: 1
 learning_rate: 0.001
