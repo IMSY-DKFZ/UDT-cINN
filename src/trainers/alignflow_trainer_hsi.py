@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import os
 
 
-class AlignFlowTrainer(DAInnBase):
+class AlignFlowTrainerHSI(DAInnBase):
     def __init__(self, experiment_config: DictConfig):
         super().__init__(experiment_config=experiment_config)
 
@@ -69,7 +69,7 @@ class AlignFlowTrainer(DAInnBase):
 
         # Finish src -> lat -> tgt: Say target is real to invert loss
         self.model.src2tgt, _ = self.model.g_tgt(self.model.src2lat, rev=True)
-        self.model.src2tgt = torch.tanh(self.model.src2tgt)
+        # self.src2tgt = torch.tanh(src2tgt)
 
         # Forward tgt -> lat: Get MLE loss
         self.model.tgt2lat, sldj_tgt2lat = self.model.g_tgt(self.model.tgt, rev=False)
@@ -77,7 +77,7 @@ class AlignFlowTrainer(DAInnBase):
 
         # Finish tgt -> lat -> src: Say source is real to invert loss
         self.model.tgt2src, _ = self.model.g_src(self.model.tgt2lat, rev=True)
-        self.model.tgt2src = torch.tanh(self.model.tgt2src)
+        # self.tgt2src = torch.tanh(tgt2src)
 
         # Jacobian Clamping loss
         if self.model.clamp_jacobian:

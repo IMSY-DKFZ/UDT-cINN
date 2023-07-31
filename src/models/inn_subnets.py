@@ -19,6 +19,13 @@ def weight_init(m, gain=1., method="kaiming"):
         m.bias.data.zero_()
 
 
+def subnet_alignflow_res_net(c_in, c_out) -> nn.Module:
+    assert c_in == c_out
+    net = nn.Sequential(ResBlocks(num_blocks=1, dim=c_in))
+    net.apply(lambda m: weight_init(m, gain=1.))
+    return net
+
+
 def subnet_res_net(c_in, c_out, n_res=1, kernel_size=(3, 3)) -> nn.Module:
     net = nn.Sequential(nn.Conv2d(c_in, 256,   kernel_size, padding=1), nn.ReLU(),
                         ResBlocks(num_blocks=n_res, dim=256),

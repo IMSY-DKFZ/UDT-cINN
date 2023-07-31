@@ -1,7 +1,7 @@
 experiment_name: alignflow
 
 seed: 42
-epochs: 300
+epochs: 5
 noise_aug: False
 noise_aug_level: 0.1
 normalization: standardize    # min_max, standardize or none
@@ -42,8 +42,8 @@ lr_decay_epochs: 100
 use_mixer: True
 clamp_jacobian: True
 clip_gradient: True
-jc_lambda_min: 0.0
-jc_lambda_max: 0.7
+jc_lambda_min: 1.0
+jc_lambda_max: 20.0
 
 
 data:
