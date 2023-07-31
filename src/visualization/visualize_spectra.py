@@ -8,20 +8,21 @@ from sklearn.manifold import TSNE
 import seaborn as sns
 import pandas as pd
 from src.utils.gather_pa_spectra_from_dataset import calculate_mean_spectrum
+from src.visualization.templates import cmap_qualitative, cmap_quantitative
 matplotlib.use('TkAgg')
 
 
 data_set_1_root = "/home/kris/Work/Data/domain_adaptation_simulations/min_max_preprocessed_data_sqrt_ms/good_simulations/test"
-data_set_2_root = "/home/kris/Work/Data/domain_adaptation_simulations/min_max_preprocessed_data_sqrt_ms/real_images/validation"
-data_set_3_root = "/home/kris/Work/Data/DA_results/gan_cinn/2023_01_23_22_47_44/testing/training"
-data_set_4_root = "/home/kris/Work/Data/DA_results/miccai/domain_adaptation_results/unit/2023_01_21_20_14_58/testing/training"
+data_set_2_root = "/home/kris/Work/Data/domain_adaptation_simulations/min_max_preprocessed_data_sqrt_ms/real_images/test"
+data_set_3_root = "/home/kris/Work/Data/DA_results/Ablation_Study/PAI/Domain_and_Tissue_labels_as_conditioning/cINN/2023_02_28_19_27_48/testing/training"
+data_set_4_root = "/home/kris/Work/Data/DA_results/miccai/domain_adaptation_results/cycle_gan/2023_05_29_18_44_10/testing/training"
 
 files_data_set_1 = glob.glob(os.path.join(data_set_1_root, "*.npz"))
 files_data_set_2 = glob.glob(os.path.join(data_set_2_root, "*.npz"))
 files_data_set_3 = glob.glob(os.path.join(data_set_3_root, "*.npz"))
 files_data_set_4 = glob.glob(os.path.join(data_set_4_root, "*.npz"))
 
-VISUALIZE_MEAN_SPECTRA = False
+VISUALIZE_MEAN_SPECTRA = True
 CLUSTER_SPECTRA = True
 CLUSTERING = "PCA"
 
@@ -30,15 +31,17 @@ if __name__ == "__main__":
     sim_spectra = calculate_mean_spectrum(files_data_set_1, return_std=True)
     real_spectra = calculate_mean_spectrum(files_data_set_2, return_std=True)
     gan_cinn_spectra = calculate_mean_spectrum(files_data_set_3, return_std=True)
-    # unit_spectra = calculate_mean_spectrum(files_data_set_4, return_std=True)
+    unit_spectra = calculate_mean_spectrum(files_data_set_4, return_std=True)
 
     print("Arteries: \n")
     print(f"gan_cinn: {np.mean(np.abs(real_spectra['mean_artery_spectra'] - gan_cinn_spectra['mean_artery_spectra']))}")
-    # print(f"unit: {np.mean(np.abs(real_spectra['mean_artery_spectra'] - unit_spectra['mean_artery_spectra']))}")
+    print(f"simulated: {np.mean(np.abs(real_spectra['mean_artery_spectra'] - sim_spectra['mean_artery_spectra']))}")
+    print(f"unit: {np.mean(np.abs(real_spectra['mean_artery_spectra'] - unit_spectra['mean_artery_spectra']))}")
 
     print("Veins: \n")
     print(f"gan_cinn: {np.mean(np.abs(real_spectra['mean_vein_spectra'] - gan_cinn_spectra['mean_vein_spectra']))}")
-    # print(f"unit: {np.mean(np.abs(real_spectra['mean_vein_spectra'] - unit_spectra['mean_vein_spectra']))}")
+    print(f"simulated: {np.mean(np.abs(real_spectra['mean_vein_spectra'] - sim_spectra['mean_vein_spectra']))}")
+    print(f"unit: {np.mean(np.abs(real_spectra['mean_vein_spectra'] - unit_spectra['mean_vein_spectra']))}")
 
     if CLUSTER_SPECTRA:
         if CLUSTERING == "PCA":
@@ -49,17 +52,20 @@ if __name__ == "__main__":
                 sim_pca = pca.transform(sim_spectra[f"{vessel}_spectra_all"])
                 real_pca = pca.transform(real_spectra[f"{vessel}_spectra_all"])
                 gan_cinn_pca = pca.transform(gan_cinn_spectra[f"{vessel}_spectra_all"])
+                unit_pca = pca.transform(unit_spectra[f"{vessel}_spectra_all"])
 
                 pca_data = np.concatenate([
                     sim_pca,
                     real_pca,
-                    gan_cinn_pca
+                    gan_cinn_pca,
+                    unit_pca
                 ])
 
                 pca_df = pd.DataFrame(data=pca_data, columns=(f"PCA component 1", f"PCA component 2"))
-                pca_df["data_type"] = ["simulation"] * np.shape(sim_pca)[0] \
+                pca_df["data_type"] = ["simulated"] * np.shape(sim_pca)[0] \
                                        + ["real"] * np.shape(real_pca)[0] \
-                                       + ["gan_cinn"] * np.shape(gan_cinn_pca)[0]
+                                       + ["cINN"] * np.shape(gan_cinn_pca)[0] \
+                                       + ["UNIT"] * np.shape(unit_pca)[0]
 
                 # plt.scatter(sim_pca[:, 0], sim_pca[:, 1], alpha=0.1, label="simulation")
                 # plt.scatter(real_pca[:, 0], real_pca[:, 1], alpha=0.1, label="real")
@@ -69,7 +75,7 @@ if __name__ == "__main__":
                 sns.jointplot(data=pca_df, x="PCA component 1", y="PCA component 2", hue="data_type",
                               kind="kde", fill=True,
                               alpha=0.4, marginal_kws={'common_norm': False},
-                              palette="brg_r", levels=10)
+                              palette=cmap_qualitative, levels=10)
                 plt.suptitle(f"{vessel} PCA components")
                 plt.tight_layout()
                 plt.xlim(-0.3, 0.3)
@@ -115,83 +121,92 @@ if __name__ == "__main__":
                 plt.show()
 
     if VISUALIZE_MEAN_SPECTRA:
+        alpha_value = 0.2
         wavelengths = np.arange(700, 855, 10)
-        plt.subplot(4, 1, 1)
-        plt.plot(wavelengths, sim_spectra["mean_vein_spectra"], label="sim veins")
-        plt.fill_between(wavelengths, sim_spectra["mean_vein_spectra"] - sim_spectra["std_vein_spectra"],
-                         sim_spectra["mean_vein_spectra"] + sim_spectra["std_vein_spectra"], alpha=0.3)
-        plt.plot(wavelengths, sim_spectra["mean_artery_spectra"], label="sim arteries")
-        plt.fill_between(wavelengths, sim_spectra["mean_artery_spectra"] - sim_spectra["std_artery_spectra"],
-                         sim_spectra["mean_artery_spectra"] + sim_spectra["std_artery_spectra"], alpha=0.3)
-        plt.legend()
-
-        plt.subplot(4, 1, 2)
-        plt.plot(wavelengths, real_spectra["mean_vein_spectra"], label="real veins")
-        plt.fill_between(wavelengths, real_spectra["mean_vein_spectra"] - real_spectra["std_vein_spectra"],
-                         real_spectra["mean_vein_spectra"] + real_spectra["std_vein_spectra"], alpha=0.3)
-        plt.plot(wavelengths, real_spectra["mean_artery_spectra"], label="real arteries")
-        plt.fill_between(wavelengths, real_spectra["mean_artery_spectra"] - real_spectra["std_artery_spectra"],
-                         real_spectra["mean_artery_spectra"] + real_spectra["std_artery_spectra"], alpha=0.3)
-        plt.legend()
-
-        plt.subplot(4, 1, 3)
-        plt.plot(wavelengths, gan_cinn_spectra["mean_vein_spectra"], label="gan_cinn veins")
-        plt.fill_between(wavelengths, gan_cinn_spectra["mean_vein_spectra"] - gan_cinn_spectra["std_vein_spectra"],
-                         gan_cinn_spectra["mean_vein_spectra"] + gan_cinn_spectra["std_vein_spectra"], alpha=0.3)
-        plt.plot(wavelengths, gan_cinn_spectra["mean_artery_spectra"], label="gan_cinn arteries")
-        plt.fill_between(wavelengths, gan_cinn_spectra["mean_artery_spectra"] - gan_cinn_spectra["std_artery_spectra"],
-                         gan_cinn_spectra["mean_artery_spectra"] + gan_cinn_spectra["std_artery_spectra"], alpha=0.3)
-        plt.legend()
+        # plt.subplot(4, 1, 1)
+        # plt.plot(wavelengths, sim_spectra["mean_vein_spectra"], label="sim veins")
+        # plt.fill_between(wavelengths, sim_spectra["mean_vein_spectra"] - sim_spectra["std_vein_spectra"],
+        #                  sim_spectra["mean_vein_spectra"] + sim_spectra["std_vein_spectra"], alpha=alpha_value)
+        # plt.plot(wavelengths, sim_spectra["mean_artery_spectra"], label="sim arteries")
+        # plt.fill_between(wavelengths, sim_spectra["mean_artery_spectra"] - sim_spectra["std_artery_spectra"],
+        #                  sim_spectra["mean_artery_spectra"] + sim_spectra["std_artery_spectra"], alpha=alpha_value)
+        # plt.legend()
+        #
+        # plt.subplot(4, 1, 2)
+        # plt.plot(wavelengths, real_spectra["mean_vein_spectra"], label="real veins")
+        # plt.fill_between(wavelengths, real_spectra["mean_vein_spectra"] - real_spectra["std_vein_spectra"],
+        #                  real_spectra["mean_vein_spectra"] + real_spectra["std_vein_spectra"], alpha=alpha_value)
+        # plt.plot(wavelengths, real_spectra["mean_artery_spectra"], label="real arteries")
+        # plt.fill_between(wavelengths, real_spectra["mean_artery_spectra"] - real_spectra["std_artery_spectra"],
+        #                  real_spectra["mean_artery_spectra"] + real_spectra["std_artery_spectra"], alpha=alpha_value)
+        # plt.legend()
+        #
+        # plt.subplot(4, 1, 3)
+        # plt.plot(wavelengths, gan_cinn_spectra["mean_vein_spectra"], label="gan_cinn veins")
+        # plt.fill_between(wavelengths, gan_cinn_spectra["mean_vein_spectra"] - gan_cinn_spectra["std_vein_spectra"],
+        #                  gan_cinn_spectra["mean_vein_spectra"] + gan_cinn_spectra["std_vein_spectra"], alpha=alpha_value)
+        # plt.plot(wavelengths, gan_cinn_spectra["mean_artery_spectra"], label="gan_cinn arteries")
+        # plt.fill_between(wavelengths, gan_cinn_spectra["mean_artery_spectra"] - gan_cinn_spectra["std_artery_spectra"],
+        #                  gan_cinn_spectra["mean_artery_spectra"] + gan_cinn_spectra["std_artery_spectra"], alpha=alpha_value)
+        # plt.legend()
 
         # plt.subplot(4, 1, 4)
         # plt.plot(wavelengths, unit_spectra["mean_vein_spectra"], label="unit veins")
         # plt.fill_between(wavelengths, unit_spectra["mean_vein_spectra"] - unit_spectra["std_vein_spectra"],
-        #                  unit_spectra["mean_vein_spectra"] + unit_spectra["std_vein_spectra"], alpha=0.3)
+        #                  unit_spectra["mean_vein_spectra"] + unit_spectra["std_vein_spectra"], alpha=alpha_value)
         # plt.plot(wavelengths, unit_spectra["mean_artery_spectra"], label="unit arteries")
         # plt.fill_between(wavelengths, unit_spectra["mean_artery_spectra"] - unit_spectra["std_artery_spectra"],
-        #                  unit_spectra["mean_artery_spectra"] + unit_spectra["std_artery_spectra"], alpha=0.3)
+        #                  unit_spectra["mean_artery_spectra"] + unit_spectra["std_artery_spectra"], alpha=alpha_value)
         # plt.legend()
-        plt.show()
-        plt.close()
+        # plt.show()
+        # plt.close()
 
         plt.subplot(2, 1, 1)
         plt.title("Artery spectra")
 
-        plt.plot(wavelengths, sim_spectra["mean_artery_spectra"], label="sim arteries")
+        plt.plot(wavelengths, sim_spectra["mean_artery_spectra"], label="sim arteries", color=cmap_qualitative["simulated"])
         plt.fill_between(wavelengths, sim_spectra["mean_artery_spectra"] - sim_spectra["std_artery_spectra"],
-                         sim_spectra["mean_artery_spectra"] + sim_spectra["std_artery_spectra"], alpha=0.3)
-        plt.plot(wavelengths, real_spectra["mean_artery_spectra"], label="real arteries")
+                         sim_spectra["mean_artery_spectra"] + sim_spectra["std_artery_spectra"], alpha=alpha_value,
+                         color=cmap_qualitative["simulated"])
+        plt.plot(wavelengths, real_spectra["mean_artery_spectra"], label="real arteries", color=cmap_qualitative["real"])
         plt.fill_between(wavelengths, real_spectra["mean_artery_spectra"] - real_spectra["std_artery_spectra"],
-                         real_spectra["mean_artery_spectra"] + real_spectra["std_artery_spectra"], alpha=0.3)
+                         real_spectra["mean_artery_spectra"] + real_spectra["std_artery_spectra"], alpha=alpha_value,
+                         color=cmap_qualitative["real"])
 
-        plt.plot(wavelengths, gan_cinn_spectra["mean_artery_spectra"], label="gan_cinn arteries")
+        plt.plot(wavelengths, gan_cinn_spectra["mean_artery_spectra"], label="gan_cinn arteries", color=cmap_qualitative["cINN"])
         plt.fill_between(wavelengths, gan_cinn_spectra["mean_artery_spectra"] - gan_cinn_spectra["std_artery_spectra"],
-                         gan_cinn_spectra["mean_artery_spectra"] + gan_cinn_spectra["std_artery_spectra"], alpha=0.3)
+                         gan_cinn_spectra["mean_artery_spectra"] + gan_cinn_spectra["std_artery_spectra"], alpha=alpha_value,
+                         color=cmap_qualitative["cINN"])
 
-        # plt.plot(wavelengths, unit_spectra["mean_artery_spectra"], label="unit arteries")
-        # plt.fill_between(wavelengths, unit_spectra["mean_artery_spectra"] - unit_spectra["std_artery_spectra"],
-        #                  unit_spectra["mean_artery_spectra"] + unit_spectra["std_artery_spectra"], alpha=0.3)
+        plt.plot(wavelengths, unit_spectra["mean_artery_spectra"], label="unit arteries", color=cmap_qualitative["UNIT"])
+        plt.fill_between(wavelengths, unit_spectra["mean_artery_spectra"] - unit_spectra["std_artery_spectra"],
+                         unit_spectra["mean_artery_spectra"] + unit_spectra["std_artery_spectra"], alpha=alpha_value,
+                         color=cmap_qualitative["UNIT"])
 
         plt.legend()
 
         plt.subplot(2, 1, 2)
         plt.title("Vein spectra")
 
-        plt.plot(wavelengths, sim_spectra["mean_vein_spectra"], label="sim veins")
+        plt.plot(wavelengths, sim_spectra["mean_vein_spectra"], label="sim veins", color=cmap_qualitative["simulated"])
         plt.fill_between(wavelengths, sim_spectra["mean_vein_spectra"] - sim_spectra["std_vein_spectra"],
-                         sim_spectra["mean_vein_spectra"] + sim_spectra["std_vein_spectra"], alpha=0.3)
+                         sim_spectra["mean_vein_spectra"] + sim_spectra["std_vein_spectra"], alpha=alpha_value,
+                         color=cmap_qualitative["simulated"])
 
-        plt.plot(wavelengths, real_spectra["mean_vein_spectra"], label="real veins")
+        plt.plot(wavelengths, real_spectra["mean_vein_spectra"], label="real veins", color=cmap_qualitative["real"])
         plt.fill_between(wavelengths, real_spectra["mean_vein_spectra"] - real_spectra["std_vein_spectra"],
-                         real_spectra["mean_vein_spectra"] + real_spectra["std_vein_spectra"], alpha=0.3)
+                         real_spectra["mean_vein_spectra"] + real_spectra["std_vein_spectra"], alpha=alpha_value,
+                         color=cmap_qualitative["real"])
 
-        plt.plot(wavelengths, gan_cinn_spectra["mean_vein_spectra"], label="gan_cinn veins")
+        plt.plot(wavelengths, gan_cinn_spectra["mean_vein_spectra"], label="gan_cinn veins", color=cmap_qualitative["cINN"])
         plt.fill_between(wavelengths, gan_cinn_spectra["mean_vein_spectra"] - gan_cinn_spectra["std_vein_spectra"],
-                         gan_cinn_spectra["mean_vein_spectra"] + gan_cinn_spectra["std_vein_spectra"], alpha=0.3)
+                         gan_cinn_spectra["mean_vein_spectra"] + gan_cinn_spectra["std_vein_spectra"], alpha=alpha_value,
+                         color=cmap_qualitative["cINN"])
 
-        # plt.plot(wavelengths, unit_spectra["mean_vein_spectra"], label="unit veins")
-        # plt.fill_between(wavelengths, unit_spectra["mean_vein_spectra"] - unit_spectra["std_vein_spectra"],
-        #                  unit_spectra["mean_vein_spectra"] + unit_spectra["std_vein_spectra"], alpha=0.3)
+        plt.plot(wavelengths, unit_spectra["mean_vein_spectra"], label="unit veins", color=cmap_qualitative["UNIT"])
+        plt.fill_between(wavelengths, unit_spectra["mean_vein_spectra"] - unit_spectra["std_vein_spectra"],
+                         unit_spectra["mean_vein_spectra"] + unit_spectra["std_vein_spectra"], alpha=alpha_value,
+                         color=cmap_qualitative["UNIT"])
 
         plt.legend()
 
