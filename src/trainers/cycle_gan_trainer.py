@@ -61,8 +61,8 @@ class CycleGANTrainer(DomainAdaptationTrainerBasePA):
             loss_gen_cyc_x_b = self.recon_criterion(images_bab, images_b)
 
             # GAN loss
-            gen_ba_loss = self.dis_a.calc_gen_loss(images_ba)
-            gen_ab_loss = self.dis_b.calc_gen_loss(images_ab)
+            gen_ab_loss = self.dis_a.calc_gen_loss(images_ba)
+            gen_ba_loss = self.dis_b.calc_gen_loss(images_ab)
 
             gen_loss = self.config["gan_w"] * (gen_ab_loss + gen_ba_loss)
 
@@ -154,7 +154,7 @@ class CycleGANTrainer(DomainAdaptationTrainerBasePA):
         images_ba = self.gen_ba(images_b if not conditioning else torch.cat([images_b, seg_b], dim=1))
 
         images_aba = self.gen_ba(images_ab if not conditioning else torch.cat([images_ab, seg_a], dim=1))
-        images_bab = self.gen_ab(images_ba if not conditioning else torch.cat([images_ba, seg_a], dim=1))
+        images_bab = self.gen_ab(images_ba)
 
         images_a = images_a.cpu().numpy() if not conditioning else images_a[0].cpu().numpy()
         images_b = images_b.cpu().numpy()

@@ -161,7 +161,6 @@ class DAInnBaseHSI(DomainAdaptationTrainerBaseHSI, ABC):
         return batch_dictionary
 
     def validation_step(self, batch, batch_idx):
-        plt.figure(figsize=(15, 7))
         spectra_a, spectra_b = self.get_spectra(batch)
         z_a, jac_a = self.forward(spectra_a, mode="a")
         spectra_ab, _ = self.forward(z_a, mode="b", rev=True)
@@ -201,6 +200,7 @@ class DAInnBaseHSI(DomainAdaptationTrainerBaseHSI, ABC):
         self.log_losses(batch_dictionary)
 
         if batch_idx == 9:
+            plt.figure(figsize=(15, 7))
             spectra_a = spectra_a[0].cpu().numpy()[0] if isinstance(spectra_a, tuple) else spectra_a.cpu().numpy()[0]
             spectra_b = spectra_b[0].cpu().numpy()[0] if isinstance(spectra_b, tuple) else spectra_b.cpu().numpy()[0]
 
