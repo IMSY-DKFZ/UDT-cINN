@@ -34,9 +34,9 @@ instant_downsampling: False
 weight_decay: 0.001           # weight decay
 beta1: 0.4                    # Adam parameter
 beta2: 0.999
-condition: segmentation       # segmentation, domain, both
-label_noise: False
-label_noise_level: 0.2
+condition: none       # segmentation, domain, both
+label_noise: True
+label_noise_level: 0.1
 real_labels: constant
 
 data:
@@ -57,3 +57,37 @@ dis:
   padding_type: replicate
   dropout: True
   dropout_p: 0.2
+
+is_training: True
+gpu_ids: 0
+initializer: normal
+kernel_size_d: 4
+norm_type: instance
+num_scales: 2
+num_blocks: 1
+num_channels: 2
+num_channels_d: 64
+num_channels_g: 64
+phase: train
+use_dropout: False
+lambda_src: 10
+lambda_tgt: 10
+lambda_id: 0.5
+lambda_l1: 100
+lambda_mle: 1.0
+beta_1: 0.5
+beta_2: 0.999
+lr: 2e-4
+rnvp_beta_1: 0.5
+rnvp_beta_2: 0.999
+rnvp_lr: 2e-4
+weight_norm_l2: 5e-5
+lr_policy: linear
+lr_step_epochs: 100
+lr_warmup_epochs: 100
+lr_decay_epochs: 100
+use_mixer: True
+clamp_jacobian: True
+clip_gradient: True
+jc_lambda_min: 0.0
+jc_lambda_max: 0.7

@@ -5,7 +5,7 @@ from pathlib import Path
 import pytorch_lightning as pl
 
 from src.utils.config_io import load_config
-from src.trainers import GanCondinitionalDomainAdaptationINNHSI, GanCondinitionalDomainAdaptationINN
+from src.trainers import GanCondinitionalDomainAdaptationINNHSI, GanCondinitionalDomainAdaptationINN, AlignFlowTrainer
 
 
 here = Path(__file__).parent
@@ -21,6 +21,7 @@ class InnInvertibilityTest(unittest.TestCase):
         self.model_list = [
             GanCondinitionalDomainAdaptationINN,
             GanCondinitionalDomainAdaptationINNHSI,
+            AlignFlowTrainer
         ]
 
         self.input_shape_list = [
