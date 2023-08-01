@@ -1,6 +1,6 @@
 experiment_name: unit
 
-epochs: 300
+epochs: 400
 seed: 42
 num_workers: 16
 shuffle: 1
@@ -32,7 +32,7 @@ normalization: standardize
 condition: segmentation
 label_noise: True
 label_noise_level: 0.2
-real_labels: constant
+real_labels: random_choice
 
 # model options
 gen:
