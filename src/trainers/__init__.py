@@ -13,8 +13,6 @@ from src.trainers.waic_trainer import WAICTrainer
 from src.trainers.cycle_gan_trainer import CycleGANTrainer
 from src.trainers.cycle_gan_hsi_trainer import CycleGANHSITrainer
 from src.trainers.waic_hsi_trainer import WAICTrainerHSI
-from src.trainers.alignflow_trainer import AlignFlowTrainer
-from src.trainers.alignflow_trainer_hsi import AlignFlowTrainerHSI
 
 
 def get_model(experiment_name: str):
@@ -30,8 +28,6 @@ def get_model(experiment_name: str):
         "cycle_gan_hsi": CycleGANHSITrainer,
         "waic": WAICTrainer,
         "waic_hsi": WAICTrainerHSI,
-        "alignflow": AlignFlowTrainer,
-        "alignflow_hsi": AlignFlowTrainer,
     }
 
     try:
