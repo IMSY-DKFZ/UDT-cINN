@@ -2,7 +2,6 @@ import torch
 import unittest
 from numpy.testing import assert_array_almost_equal
 from pathlib import Path
-import pytorch_lightning as pl
 
 from src.utils.config_io import load_config
 from src.trainers import GanCondinitionalDomainAdaptationINNHSI, GanCondinitionalDomainAdaptationINN
