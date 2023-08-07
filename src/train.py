@@ -26,6 +26,13 @@ try:
 except KeyError:
     run_by_bash: bool = False
 
+try:
+    experiment_id = os.environ["EXPERIMENT_ID"]
+except KeyError:
+    print("No Experiment name was given, so the save path will be the training start time stamp!")
+    time_stamp = datetime.now()
+    experiment_id = time_stamp.strftime("%Y_%m_%d_%H_%M_%S")
+
 if run_by_bash:
     EXPERIMENT_NAME = os.environ['EXPERIMENT_NAME']
     SAVE_DATA_PATH = os.environ["SAVE_DATA_PATH"]
@@ -41,11 +48,9 @@ else:
 
 config_path = get_conf_path(PYTHON_PATH, EXPERIMENT_NAME)
 config = load_config(config_path)
-time_stamp = datetime.now()
-time_stamp = time_stamp.strftime("%Y_%m_%d_%H_%M_%S")
 
 save_path = os.path.join(SAVE_DATA_PATH, EXPERIMENT_NAME)
-config["save_path"] = os.path.join(save_path, time_stamp)
+config["save_path"] = os.path.join(save_path, experiment_id)
 config["data_base_path"] = DATA_BASE_PATH
 
 parser = DomainAdaptationParser(config=config)
@@ -63,7 +68,7 @@ model = get_model(experiment_name=EXPERIMENT_NAME)
 
 data_module = data_module(experiment_config=config)
 model = model(experiment_config=config)
-logger = TensorBoardLogger(save_dir=save_path, name=time_stamp)
+logger = TensorBoardLogger(save_dir=save_path, name=experiment_id)
 logger.log_hyperparams(config)
 
 trainer = pl.trainer.Trainer(accelerator='gpu', devices=1, max_epochs=config.epochs, logger=logger,
