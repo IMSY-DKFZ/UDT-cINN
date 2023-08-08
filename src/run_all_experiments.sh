@@ -10,6 +10,9 @@ export DATA_BASE_PATH="/Path/to/raw/data"
 
 # TODO Adjust the following line depending on where you want to save all the output data!
 export SAVE_DATA_PATH="/Path/to/save/folder"
+mkdir "$SAVE_DATA_PATH/results"
+mkdir "$SAVE_DATA_PATH/results/inn"
+mkdir "$SAVE_DATA_PATH/results/unit"
 
 export HSI_DATA_PATH="$DATA_BASE_PATH/HSI_Data/organ_data"
 export PAT_DATA_PATH="$DATA_BASE_PATH/PAT_Data"
@@ -109,23 +112,26 @@ python3 evaluation/post_process_generated_data.py "--path" "$UNIT_Y_PATH"
 #python3 evaluation/post_process_generated_data.py "--path" "$UNIT_PATH"
 #python3 evaluation/post_process_generated_data.py "--path" "$CYCLEGAN_PATH"
 
-# Uncomment the following line for full reproducibility. Please note that cINN_D and UNIT will be the values for 'inn' and 'unit', respectively.
+# The following line produces the classification results in table 1 of the paper.
+python3 evaluation/artery_vein_classifier.py "--target" "test" "--data_base_root" "$PAT_DATA_PATH" "--gan_cinn_root" "$cINN_DY_PATH/testing/training" "--unit_root" "$UNIT_Y_PATH/testing/training"
+
+# Uncomment the following line for full reproducibility and comment the line above. Please note that cINN_D and UNIT will be the values for 'inn' and 'unit', respectively.
 #python3 evaluation/artery_vein_classifier.py "--target" "test" "--data_base_root" "$PAT_DATA_PATH" "--gan_cinn_root" "$cINN_D_PATH/testing/training" "--unit_root" "$UNIT_PATH/testing/training"
 
-# Uncomment the following line for full reproducibility. Please note that cINN_without_GAN and CycleGAN will be the values for 'inn' and 'unit', respectively.
+# Uncomment the following line for full reproducibility and comment the lines above. Please note that cINN_without_GAN and CycleGAN will be the values for 'inn' and 'unit', respectively.
 #python3 evaluation/artery_vein_classifier.py "--target" "test" "--data_base_root" "$PAT_DATA_PATH" "--gan_cinn_root" "$cINN_WG_PATH/testing/training" "--unit_root" "$CYCLEGAN_PATH/testing/training"
 
-python3 evaluation/artery_vein_classifier.py "--target" "test" "--data_base_root" "$PAT_DATA_PATH" "--gan_cinn_root" "$cINN_DY_PATH/testing/training" "--unit_root" "$UNIT_Y_PATH/testing/training"
+# The following lines plot the figures of the paper. Since we only showed cINN_DY and UNIT_Y in the paper, we don't include this for the other models.
+# This means for full reproducibility of Table 1, these lines can be commented.
 python3 evaluation/compute_pai_pca.py "--pca" "--target" "test" "--data_base_root" "$PAT_DATA_PATH" "--gan_cinn_root" "$cINN_DY_PATH/testing/training" "--unit_root" "$UNIT_Y_PATH/testing/training"
 python3 visualization/plot_pai_spectra.py "--spectra" "--diff" "--target" "test" "--data_base_root" "$PAT_DATA_PATH" "--gan_cinn_root" "$cINN_DY_PATH/testing/training" "--unit_root" "$UNIT_Y_PATH/testing/training"
 
-mkdir "$SAVE_DATA_PATH/results/inn"
-mkdir "$SAVE_DATA_PATH/results/unit"
+# The following lines plot the figures of the paper. Since we only showed cINN_DY and UNIT_Y in the paper, we don't include this for the other models.
+# This means for full reproducibility of Table 1, these lines can be commented.
 cp -r "$cINN_DY_PATH_HSI" "$SAVE_DATA_PATH/results/inn/generated_spectra_data"
 cp -r "$UNIT_Y_PATH_HSI" "$SAVE_DATA_PATH/results/unit/generated_spectra_data"
 python3 evaluation/si_classifier.py "--rf" "--target" "test"
 python3 visualization/plot_semantic_spectra.py "--spectra" "--diff" "--pca"
-
 python3 visualization/manuscript_plots.py
 
 # Uncomment the following lines for full reproducibility. Please note that cINN_D and UNIT will be the values for 'inn' and 'unit', respectively.
