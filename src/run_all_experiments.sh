@@ -6,12 +6,10 @@
 # For full reproduction, please uncomment Experiments 2, 3, 5, 6, 8, 10, 11, 12.
 
 # TODO Adjust the following line to the parent folder of where you have stored the folders 'HSI_Data' and 'PAI_Data'!
-export DATA_BASE_PATH="/home/kris/Work/Data/domain_adaptation_simulations"
-#export DATA_BASE_PATH="/Path/to/raw/data"
+export DATA_BASE_PATH="/Path/to/raw/data"
 
-# TODO Adjust the following line depending on where yiu want to save all the output data!
-export SAVE_DATA_PATH="/home/kris/Work/Data/Test"
-#export SAVE_DATA_PATH="/Path/to/save/folder"
+# TODO Adjust the following line depending on where you want to save all the output data!
+export SAVE_DATA_PATH="/Path/to/save/folder"
 
 export HSI_DATA_PATH="$DATA_BASE_PATH/HSI_Data/organ_data"
 export PAT_DATA_PATH="$DATA_BASE_PATH/PAT_Data"
