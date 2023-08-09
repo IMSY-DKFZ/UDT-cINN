@@ -41,7 +41,7 @@ def compute_pca(data_base_root: str, gan_cinn_root: str, unit_root: str, target:
     results = ExperimentResults()
     tissues = ['artery', 'vein']
     targets = list(data.keys())
-    os.makedirs(settings.results_dir / 'pca')
+    os.makedirs(settings.results_dir / 'pca', exist_ok=True)
     for tissue in tissues:
         pca = PCA(n_components=2)
         pca.fit(data['real'][tissue])
