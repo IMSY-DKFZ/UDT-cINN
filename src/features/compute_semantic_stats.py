@@ -4,7 +4,6 @@ import json
 import torch
 from omegaconf import DictConfig
 from sklearn.preprocessing import normalize
-from tqdm import tqdm
 
 from src import settings
 from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
@@ -22,7 +21,7 @@ def compute_running_stats(data: list):
     n = 0
     mean = 0
     m2 = 0
-    for item in tqdm(data, desc="computing running stats"):
+    for item in data:
         item = item.flatten()
         for x in item:
             n += 1
@@ -43,7 +42,7 @@ def _compute_stats(data: np.ndarray):
 def load_data(dm: SemanticDataModule, target: str = 'real_source'):
     splits = ['train', 'val', 'test']
     data = {}
-    for split in tqdm(splits):
+    for split in splits:
         folder = dm.root_path / f'{split}_synthetic_{target}'
         files = list(folder.glob('*.npy'))
         files = [f for f in files if '_ind.npy' not in f.name and '_seg.npy' not in f.name]

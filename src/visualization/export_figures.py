@@ -1,5 +1,4 @@
 import click
-from tqdm import tqdm
 from subprocess import run
 
 from src import settings
@@ -20,7 +19,7 @@ def get_command(f: str) -> list:
 
 def export_figures():
     files = get_files_to_export()
-    for f in tqdm(files):
+    for f in files:
         if f.name not in EXCLUDE_FILES:
             cmd = get_command(f=str(f))
             run(cmd)

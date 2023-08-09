@@ -9,7 +9,6 @@ from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, classification_report, roc_auc_score, balanced_accuracy_score, f1_score
 from sklearn.calibration import CalibratedClassifierCV
-from tqdm import tqdm
 from typing import Any
 from itertools import cycle
 import warnings
@@ -314,7 +313,7 @@ def eval_classification(target: str, balance_classes: bool):
     print(f"\nNumber of RF estimators: {n_estimators}")
     print(f"Calibrate model: {calibration}")
 
-    for stage in tqdm(stages, desc="iterating stages"):
+    for stage in stages:
         train_data = data.get('train').get(f'x_{stage}')
         train_labels = data.get('train').get(f'y_{stage}')
         model = get_model(train_data, train_labels, n_jobs=-1, n_estimators=n_estimators)

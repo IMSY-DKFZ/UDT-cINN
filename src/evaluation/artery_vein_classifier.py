@@ -8,8 +8,7 @@ import glob
 from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, classification_report, balanced_accuracy_score, \
-    roc_auc_score, f1_score, accuracy_score, roc_curve
-from tqdm import tqdm
+    roc_auc_score, f1_score, accuracy_score
 from src.utils.susi import ExperimentResults
 from src import settings
 from src.utils.gather_pa_spectra_from_dataset import calculate_mean_spectrum
@@ -101,7 +100,7 @@ def eval_classification(data_base_root: str, gan_cinn_root: str, unit_root: str,
     data = load_data(data_base_root, gan_cinn_root, unit_root, target)
     per_class_metrics = False
     metrics = ExperimentResults()
-    for stage in tqdm(stages, desc="iterating stages"):
+    for stage in stages:
         train_data = data.get('train').get(f'x_{stage}')
         train_labels = data.get('train').get(f'y_{stage}')
         model = get_model(train_data, train_labels, n_jobs=-1, n_estimators=100)

@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "ms_da"
+name = "UDT_cINN"
 version = "0.0.1"
-description = "This is the project repo for the unsupervised domain adaptation project submitted to miccai23"
+description = "This is the project repo for the unsupervised domain transfer project submitted to miccai23"
 authors = ["Kris Dreher <k.dreher@dkfz-heidelberg.de>"]
 license = "MIT"
 readme = "README.md"
@@ -13,7 +13,7 @@ packages = [
 # Requirements
 [tool.poetry.dependencies]
 python = ">=3.8"
-# FrEIA = { git = "https://github.com/VLL-HD/FrEIA.git" }
+FrEIA = { git = "https://github.com/VLL-HD/FrEIA.git" }
 click = "*"
 Sphinx = "*"
 coverage = "*"
@@ -23,8 +23,7 @@ pandas = "*"
 numpy  = "<1.24"
 scikit-learn = "*"
 scipy = "*"
-tqdm = "*"
-pytorch-lightning = "*"
+pytorch-lightning = "1.9.0"
 omegaconf = "*"
 matplotlib_scalebar = "*"
 openpyxl = "*"

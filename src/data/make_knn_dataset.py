@@ -7,7 +7,6 @@ from pathlib import Path
 from htc.tivita.DataPathMultiorgan import DataPathMultiorgan
 from typing import *
 import json
-from tqdm import tqdm
 
 from src import settings
 from src.data.multi_layer_loader import SimulationDataLoader
@@ -118,7 +117,7 @@ def generate_dataset(nr_neighbours: int, target_folder: str = 'semantic_v2'):
     models = get_knn_models(nr_neighbours=nr_neighbours)
     # iterate over data splits
     for k, paths in splits.items():
-        for p in tqdm(paths):
+        for p in paths:
             organ_data = get_organ_data(p=p, nr_pixels=nr_pixels, labels=labels, target_folder=target_folder)
             if organ_data is None:
                 continue
