@@ -33,6 +33,7 @@ condition: None
 label_noise: True
 label_noise_level: 0.2
 real_labels: constant
+test_run: True
 
 # model options
 gen:
