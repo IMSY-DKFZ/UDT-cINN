@@ -310,8 +310,8 @@ def eval_classification(target: str, balance_classes: bool):
     calibration = True
     per_class_metrics = False
 
-    print(f"\nNumber of RF estimators: {n_estimators}")
-    print(f"Calibrate model: {calibration}")
+    # print(f"\nNumber of RF estimators: {n_estimators}")
+    # print(f"Calibrate model: {calibration}")
 
     for stage in stages:
         train_data = data.get('train').get(f'x_{stage}')
@@ -322,7 +322,7 @@ def eval_classification(target: str, balance_classes: bool):
         if calibration:
             model = CalibratedClassifierCV(model)
             model.fit(train_data, train_labels)
-            print("\n#### With calibration ####")
+            print("#### With calibration ####")
 
         y_cal_proba = model.predict_proba(test_data)
         y_cal_pred = model.predict(test_data)
@@ -347,9 +347,9 @@ def eval_classification(target: str, balance_classes: bool):
             metrics.append(name='organ', value=names)
 
 
-            print(f'\nf1 score {stage}: {per_class_f1}')
-            print(f"balanced_accuracy_score {stage} {per_class_accuracies}")
-            print(f"roc_auc_score {stage} {per_class_auroc}")
+            print(f'f1 score {stage}: {per_class_f1:2f}')
+            print(f"balanced_accuracy_score {stage}: {per_class_accuracies:2f}")
+            print(f"roc_auc_score {stage}: {per_class_auroc:2f}")
 
         else:
             balanced_accuracy = balanced_accuracy_score(y_true=test_labels, y_pred=y_cal_pred)
@@ -360,9 +360,9 @@ def eval_classification(target: str, balance_classes: bool):
             metrics.append(name='f1', value=float(f1))
             metrics.append(name='data', value=stage)
 
-            print(f"balanced_accuracy_score {stage} {balanced_accuracy}")
-            print(f"roc_auc_score {stage} {roc_auc}")
-            print(f'\nf1 score {stage}: {f1}')
+            print(f"balanced_accuracy_score {stage}: {balanced_accuracy:2f}")
+            print(f"roc_auc_score {stage}: {roc_auc:2f}")
+            print(f'f1 score {stage}: {f1:2f}')
 
         results = pd.DataFrame(report)
         save_dir_path = settings.results_dir / 'rf'
