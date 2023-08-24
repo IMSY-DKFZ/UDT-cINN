@@ -10,9 +10,9 @@ export DATA_BASE_PATH="/dkfz/cluster/gpu/data/OE0176/dreherk/domain_adaptation_d
 
 export SAVE_DATA_PATH="/dkfz/cluster/gpu/checkpoints/OE0176/dreherk/domain_adaptation_results"
 
-export PATH_MICCAI_23_INTERMEDIATES="/dkfz/cluster/gpu/data/OE0176/dreherk/domain_adaptation_data/HSI_Data/organ_data/intermediates"
-export PATH_MICCAI_23_PROJECT="/dkfz/cluster/gpu/data/OE0176/dreherk/domain_adaptation_data/HSI_Data/organ_data"
-export PATH_MICCAI_23_SEMANTIC_DATASET="/dkfz/cluster/gpu/data/OE0176/dreherk/domain_adaptation_data/HSI_Data/organ_data/intermediates/semantic"
+export PATH_MICCAI_23_INTERMEDIATES="/dkfz/cluster/gpu/data/OE0176/dreherk/domain_adaptation_data/HSI_Data/intermediates"
+export PATH_MICCAI_23_PROJECT="/dkfz/cluster/gpu/data/OE0176/dreherk/domain_adaptation_data/HSI_Data"
+export PATH_MICCAI_23_SEMANTIC_DATASET="/dkfz/cluster/gpu/data/OE0176/dreherk/domain_adaptation_data/HSI_Data/intermediates/semantic"
 
 export PYTHON_PATH="$PWD"
 

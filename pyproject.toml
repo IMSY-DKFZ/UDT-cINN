@@ -32,6 +32,7 @@ tensorboard = "*"
 seaborn = "*"
 dask = "^2023.1.0"
 plotly = "^5.13.1"
+kaleido = "*"
 
 [tool.poetry.group.docs.dependencies]
 sphinx-rtd-theme = "^1.0.0"

@@ -33,7 +33,7 @@ class DomainAdaptationDataset(Dataset):
     def __getitem__(self, index):
         path_a = self.image_list_a[index % self.image_list_a_length]
         if os.path.splitext(path_a)[1] == ".npz":
-            data = np.load(path_a)
+            data = np.load(path_a, allow_pickle=True)
             img_a = torch.from_numpy(data["reconstruction"])
             seg_a = data["segmentation"] if "segmentation" in data else 0
             oxy_a = data["oxygenation"] if "oxygenation" in data else 0
@@ -45,7 +45,7 @@ class DomainAdaptationDataset(Dataset):
 
         path_b = self.image_list_b[index % self.image_list_b_length]
         if os.path.splitext(path_b)[1] == ".npz":
-            data = np.load(path_b)
+            data = np.load(path_b, allow_pickle=True)
             img_b = torch.from_numpy(data["reconstruction"])
             seg_b = data["segmentation"] if "segmentation" in data else 0
             oxy_b = data["oxygenation"] if "oxygenation" in data else 0
