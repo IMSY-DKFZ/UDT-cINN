@@ -1,6 +1,7 @@
 import click
 import numpy as np
 import cuml
+import pandas as pd
 import torch
 from htc import DataPath, LabelMapping
 from pathlib import Path
@@ -31,6 +32,13 @@ def get_dataset_iterator():
 
 
 def split_dataset(iterator):
+    """
+    Splits the dataset into train, validation, and test sets based on the provided iterator.
+
+    :param iterator: An iterator containing `DataPathMultiorgan` objects.
+    :return: A dictionary with keys 'train', 'val', 'test', 'train_synthetic', 'val_synthetic', 'test_synthetic', and
+             values as lists of DataPathMultiorgan objects.
+    """
     paths: List[DataPathMultiorgan] = list(iterator)
     with open(str(here / "semantic_data_splits.json"), "rb") as handle:
         splits = json.load(handle)
@@ -49,19 +57,38 @@ def split_dataset(iterator):
     return paths_splits
 
 
-def load_adapted_layered_dataset():
+def load_adapted_layered_dataset() -> pd.DataFrame:
+    """
+    This method is used to load an adapted layered dataset for training.
+
+    :return: A DataFrame object representing the loaded dataset.
+    """
     loader = SimulationDataLoader()
     df = loader.get_database(simulation='generic_depth_adapted', splits=['train'])
     return df
 
 
 def load_sampled_layered_dataset():
+    """
+    Loads a layered dataset from a simulation using a SimulationDataLoader.
+
+    :return: A `pandas` DataFrame containing the loaded dataset.
+    """
     loader = SimulationDataLoader()
     df = loader.get_database(simulation='generic_depth_sampled', splits=['train'])
     return df
 
 
 def get_knn_models(nr_neighbours: int):
+    """
+    Trains knn models for transformed simulations based on `sampling wavelengths` and `adapting to the optical system`
+
+    :param nr_neighbours: The number of nearest neighbors to consider when fitting the k-nearest neighbors model.
+    :return: A dictionary containing the k-nearest neighbors models and their respective data. The keys 'sampled' and
+        'adapted' correspond to the models fitted on the sampled and adapted datasets, respectively. Each model is
+        represented as a dictionary with keys 'model' and 'data', where 'model' refers to the fitted k-nearest neighbors
+        model and 'data' refers to the input data used for fitting the model.
+    """
     df_sampled = load_sampled_layered_dataset()
     x_sampled = df_sampled.reflectances.values
     knn_sampled = fit_knn(x=x_sampled, **dict(n_neighbors=nr_neighbours))
@@ -81,7 +108,19 @@ def get_nearest_neighbors(im, models):
     return results
 
 
-def get_organ_data(p, nr_pixels, labels, target_folder):
+def get_organ_data(p: DataPathMultiorgan,
+                   nr_pixels: int,
+                   labels: dict,
+                   target_folder: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    reads image from the provided path and 
+
+    :param p: The DataPath object representing the data source.
+    :param nr_pixels: The desired number of pixels for each organ.
+    :param labels: The dictionary containing the labels of the organs.
+    :param target_folder: The name of the target folder.
+    :return: A tuple containing the image data, segmented data, and mask.
+    """
     mapping = LabelMapping.from_path(p)
     with open(str(settings.intermediates_dir / target_folder / 'mapping.json'), 'w') as handle:
         json.dump(mapping.mapping_index_name, handle, indent=4)
