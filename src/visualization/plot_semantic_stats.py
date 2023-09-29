@@ -3,7 +3,6 @@ import json
 import pandas as pd
 import numpy as np
 import plotly.express as px
-from tqdm import tqdm
 from htc import DataPath
 from omegaconf import DictConfig
 
@@ -31,7 +30,7 @@ def plot_organ_statistics():
     results = {'organ': [], 'subject': [], 'split': [], 'spectra_count': [], 'name': []}
     for k, paths in splits.items():
         mapping = settings.mapping
-        for p in tqdm(paths, desc=k):
+        for p in paths:
             seg = p.read_segmentation()
             organ_id = [i for i in np.unique(seg) if str(i) in mapping and mapping[str(i)] in labels["organ_labels"]]
             organs = [mapping[str(i)] for i in organ_id]

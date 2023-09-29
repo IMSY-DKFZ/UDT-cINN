@@ -3,7 +3,6 @@ import torch
 import numpy as np
 from omegaconf import DictConfig
 from pathlib import Path
-from tqdm import tqdm
 from sklearn.preprocessing import normalize
 
 from src import settings
@@ -16,7 +15,6 @@ this_path = Path(__file__)
 def find_unique_rows(x: torch.Tensor, desc: str = "") -> torch.Tensor:
     target = x[0]
     unique_rows = []
-    pbar = tqdm(desc=desc, total=len(x))
     while x.numel():
         diff = x - target
         index_inv = torch.where(~torch.all(diff == 0, dim=1))
@@ -26,9 +24,6 @@ def find_unique_rows(x: torch.Tensor, desc: str = "") -> torch.Tensor:
         unique_rows.append(target.cpu())
         if x.numel():
             target = x[0]
-            pbar.update(1)
-            pbar.total = len(x)
-            pbar.refresh()
     unique = torch.vstack(unique_rows)
     return unique
 
@@ -186,7 +181,7 @@ class TestSemanticDataset(unittest.TestCase):
         splits = [f for f in list(folder.glob('*')) if f.is_dir()]
         for split in splits:
             files = list(split.glob('*_seg.npy'))
-            for f in tqdm(files, desc=split.name):
+            for f in files:
                 x = np.load(f, allow_pickle=True)
                 ind = np.unique(x)
                 organs += [mapping[str(i)] for i in ind]
@@ -271,7 +266,6 @@ class TestSemanticDataModule(unittest.TestCase):
         for loader in loaders:
             batch_size = loader.batch_sampler.batch_size
             ignore_classes = loader.dataset.ignore_classes
-            pbar = tqdm(total=len(loader))
             ignore_indices = [int(i) for i, k in settings.mapping.items() if k in ignore_classes]
             loader_iter = iter(loader)
             while True:
@@ -315,7 +309,6 @@ class TestSemanticDataModule(unittest.TestCase):
                                 self.assertFalse(
                                     np.allclose(len(labels[labels == label]), class_size, atol=prevalence_tolerance)
                                 )
-                    pbar.update(1)
                 except (StopIteration, KeyboardInterrupt):
                     break
 
@@ -338,7 +331,7 @@ class TestSemanticDataModule(unittest.TestCase):
         loaders = [dm.train_dataloader(), dm.val_dataloader()]
         for loader in loaders:
             batch_size = loader.batch_sampler.batch_size
-            for data in tqdm(loader):
+            for data in loader:
                 self.assertTrue(isinstance(data.get('spectra_a'), torch.Tensor))
                 self.assertTrue(len(data.get('spectra_a').size()) == 2)
                 self.assertTrue(isinstance(data.get('seg_a'), torch.Tensor))
@@ -379,7 +372,7 @@ class TestSemanticDataModule(unittest.TestCase):
         with EnableTestData(self.dm):
             loaders = [self.dm.test_dataloader()]
             for loader in loaders:
-                for data in tqdm(loader):
+                for data in loader:
                     self.assertTrue(isinstance(data.get('spectra_a'), torch.Tensor))
                     self.assertTrue(len(data.get('spectra_a').size()) == 2)
                     self.assertTrue(isinstance(data.get('seg_a'), torch.Tensor))

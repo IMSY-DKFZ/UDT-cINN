@@ -35,12 +35,12 @@ if dotenv_path.exists():
     load_dotenv(dotenv_path=dotenv_path)
 
 # Set Path variables
-intermediates_dir = unify_path(os.getenv('PATH_MICCAI_23_INTERMEDIATES') or '')
-results_dir = unify_path(Path(os.getenv('PATH_MICCAI_23_PROJECT') or '') / 'results')
-figures_dir = unify_path(Path(os.getenv('PATH_MICCAI_23_PROJECT') or '') / 'figures')
+intermediates_dir = unify_path(Path(os.getenv('HSI_DATA_PATH') or '') / 'intermediates')
+results_dir = unify_path(Path(os.getenv('SAVE_DATA_PATH') or '') / 'results')
+figures_dir = unify_path(Path(os.getenv('SAVE_DATA_PATH') or '') / 'figures')
 tivita_cam_filters_file = intermediates_dir / 'optics' / 'artificial_tivita_camera_normal_20nm.csv'
 tivita_irradiance = intermediates_dir / 'optics' / 'tivita_relative_irradiance_2019_04_05.txt'
-tivita_semantic = unify_path(os.getenv('PATH_MICCAI_23_SEMANTIC_DATASET') or '')
+tivita_semantic = unify_path(Path(intermediates_dir) / 'semantic_v2')
 
 
 # load pre-defined organ mapping
@@ -49,5 +49,7 @@ with open(str(here / 'data/mapping.json'), 'rb') as handle:
 with open(str(here / 'data/semantic_organ_labels.json'), 'rb') as handle:
     organ_labels = json.load(handle)['organ_labels']
 
+for directory in [results_dir, figures_dir]:
+    os.makedirs(directory, exist_ok=True)
 
 pai_wavelengths = np.arange(700, 855, 10)

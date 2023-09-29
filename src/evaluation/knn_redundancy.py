@@ -2,7 +2,6 @@ import click
 import pandas as pd
 from omegaconf import DictConfig
 import numpy as np
-from tqdm import tqdm
 import torch
 
 from src.data.data_modules import SemanticDataModule
@@ -31,7 +30,6 @@ def calculate_redundancy():
     results_unique = {k: 0 for k in unique_labels}
     target = x[0]
     true_label = int(y[0])
-    pbar = tqdm(desc="searching KNN duplicates", total=len(x))
     while x.numel():
         diff = x - target
         index = torch.where(torch.all(diff == 0, dim=1))
@@ -50,9 +48,6 @@ def calculate_redundancy():
         if x.numel():
             target = x[0]
             true_label = int(y[0])
-            pbar.update(1)
-            pbar.total = len(x)
-            pbar.refresh()
     results_agg = ExperimentResults()
     mapping = get_label_mapping()
     results_unique = {mapping[str(k)]: i for k, i in results_unique.items()}
@@ -71,7 +66,6 @@ def count_unique_rows(x: torch.Tensor, label: str) -> (int, list):
     target = x[0]
     n_unique = 0
     n_unique_per_sample = []
-    pbar = tqdm(desc=str(label), total=len(x))
     while x.numel():
         diff = x - target
         n_unique_per_sample.append(int(torch.all(diff == 0, dim=1).sum()))
@@ -80,9 +74,6 @@ def count_unique_rows(x: torch.Tensor, label: str) -> (int, list):
         n_unique += 1
         if x.numel():
             target = x[0]
-            pbar.update(1)
-            pbar.total = len(x)
-            pbar.refresh()
     return n_unique, n_unique_per_sample
 
 

@@ -7,7 +7,6 @@ import joblib
 import seaborn as sns
 from sklearn.preprocessing import normalize
 from sklearn.decomposition import PCA
-from tqdm import tqdm
 from typing import List
 
 from src import settings
@@ -32,7 +31,7 @@ def load_data(splits: list, norm: bool = True, target_dataset: str = "semantic_v
         seg_files = _strip_names([f"{str(f.name).split('.')[0]}_seg.npy" for f in files])
         seg_files = [folder / f for f in seg_files]
         i = 0
-        for f, seg_f in tqdm(zip(files, seg_files)):
+        for f, seg_f in zip(files, seg_files):
             seg = np.load(seg_f, allow_pickle=True)
             img = np.load(f, allow_pickle=True)
             subject_id, image_id = f.name.split('#')
@@ -75,7 +74,7 @@ def load_inn_results(folder: str) -> pd.DataFrame:
     seg = []
     subject_ids = []
     image_ids = []
-    for file in tqdm(files):
+    for file in files:
         tmp_data = np.load(file, allow_pickle=True)
         x = tmp_data['spectra_ab']
         # spectra adapted from synthetic to real should be normalized with the statistics of the real data set
@@ -227,7 +226,7 @@ def plot_pca():
     inn_agg['dataset'] = 'inn'
     unit_agg['dataset'] = 'unit'
     results = ExperimentResults()
-    for organ in tqdm(real_agg.organ.unique()):
+    for organ in real_agg.organ.unique():
         # transform spectra
         tmp = real_agg[real_agg.organ == organ]
 

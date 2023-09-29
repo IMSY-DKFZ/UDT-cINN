@@ -3,7 +3,6 @@ from typing import List, Union
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from tqdm import tqdm
 
 from src.settings import intermediates_dir
 
@@ -82,7 +81,7 @@ class SimulationDataLoader:
                 raise ValueError(f"path is neither file nor folder: {full_path}")
 
             local = []
-            for fn in tqdm(files, desc='Reading files'):
+            for fn in files:
                 loc = pd.read_csv(fn, header=[0, 1], index_col=None)
                 local.append(loc)
             loc = pd.concat(local, ignore_index=True)

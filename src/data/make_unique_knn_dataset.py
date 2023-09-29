@@ -2,7 +2,6 @@ import click
 import numpy as np
 import torch
 import cuml
-from tqdm import tqdm
 from omegaconf import DictConfig
 
 from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
@@ -20,7 +19,6 @@ def fit_knn(x, **kwargs):
 def find_unique_rows(x: torch.Tensor, desc: str = "") -> torch.Tensor:
     target = x[0]
     unique_rows = []
-    pbar = tqdm(desc=desc, total=len(x))
     while x.numel():
         diff = x - target
         index_inv = torch.where(~torch.all(diff == 0, dim=1))
@@ -30,9 +28,6 @@ def find_unique_rows(x: torch.Tensor, desc: str = "") -> torch.Tensor:
         unique_rows.append(target.cpu())
         if x.numel():
             target = x[0]
-            pbar.update(1)
-            pbar.total = len(x)
-            pbar.refresh()
     unique = torch.vstack(unique_rows)
     return unique
 
