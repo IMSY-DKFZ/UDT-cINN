@@ -1,10 +1,11 @@
+import re
+from functools import partial
+
 import click
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objs as go
-import re
-from functools import partial
 
 from src import settings
 from src.data.utils import get_label_mapping

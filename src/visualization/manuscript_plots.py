@@ -1,21 +1,18 @@
 import os
 
-import numpy as np
-import plotly.express as px
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
-
-import pandas as pd
 import joblib
-import seaborn as sns
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import seaborn as sns
 
 from src import settings
-from src.visualization.plot import line
-from src.data.utils import get_organ_labels
-from src.visualization.templates import cmap_qualitative, cmap_quantitative_list
 from src.data.utils import get_label_mapping, get_pa_label_mapping
+from src.data.utils import get_organ_labels
 from src.utils.susi import ExperimentResults
+from src.visualization.plot import line
+from src.visualization.templates import cmap_qualitative, cmap_quantitative_list
 
 organs_to_plot = ['stomach', 'small_bowel', 'liver', 'spleen', 'fat']
 organs_to_plot = ['colon', 'stomach', 'omentum', 'spleen', 'fat']
@@ -71,7 +68,7 @@ def compute_metric_diff(df: pd.DataFrame) -> pd.DataFrame:
         (~metric_df.data.isin(['simulated', 'real']))
         # & (~metric_df.metric.isin(['F1-Score']))
         & (~metric_df.data.isin(['cINN_d', 'UNIT']))
-    ]
+        ]
     metric_df, mapper = prepare_data(metric_df)
     return metric_df, mapper, real_baseline
 
@@ -129,7 +126,6 @@ fig.write_image(settings.figures_dir / 'manuscript' / 'semantic_reflectance.svg'
 fig.write_image(settings.figures_dir / 'manuscript' / 'semantic_reflectance.png', scale=2)
 fig.write_html(settings.figures_dir / 'manuscript' / 'semantic_reflectance.html')
 
-
 df = pd.read_csv(settings.figures_dir / 'semantic_diff.csv')
 organs = get_organ_labels()['organ_labels']
 organs = [o for o in organs if o != 'gallbladder' and o in organs_to_plot]
@@ -137,22 +133,24 @@ df = df[df['organ'].isin(organs)]
 organs = [' '.join(o.split('_')) for o in organs]
 df_prepared, mapper = prepare_data(df)
 fig = px.violin(data_frame=df_prepared,
-             x="data",
-             y=mapper.get('difference'),
-             color="data",
-             facet_col="organ",
-             facet_col_wrap=5,
-             color_discrete_map=cmap_qualitative,
-             template="plotly_white",
-             category_orders=dict(organ=organs_to_plot, data=['real - simulated', 'real - UNIT', 'real - cINN']),
-             facet_row_spacing=0.2,
-             facet_col_spacing=0.05,
-             width=800,
-             height=400,
+                x="data",
+                y=mapper.get('difference'),
+                color="data",
+                facet_col="organ",
+                facet_col_wrap=5,
+                color_discrete_map=cmap_qualitative,
+                template="plotly_white",
+                category_orders=dict(organ=organs_to_plot, data=['real - simulated', 'real - UNIT', 'real - cINN']),
+                facet_row_spacing=0.2,
+                facet_col_spacing=0.05,
+                width=800,
+                height=400,
                 points="all"
-             )
+                )
 fig.update_traces(scalemode='width', meanline_visible=True, line=dict(width=3))
 TRACE_INDEX = []
+
+
 def split_scale_group(tr):
     if TRACE_INDEX:
         TRACE_INDEX.append(TRACE_INDEX[-1] + 1)
@@ -160,8 +158,10 @@ def split_scale_group(tr):
         TRACE_INDEX.append(0)
     tr.scalegroup = TRACE_INDEX[-1]
     return tr
+
+
 fig.for_each_trace(split_scale_group)
-font_size=18
+font_size = 18
 fig.update_layout(font=dict(size=font_size, family=font_type, color="#000000"),
                   legend=dict(orientation="h", xanchor="center", x=0.5, y=0., title=""),
                   margin=dict(l=0, r=0, t=30, b=0)
@@ -175,7 +175,6 @@ os.makedirs(settings.figures_dir / 'manuscript', exist_ok=True)
 fig.write_image(settings.figures_dir / 'manuscript' / 'semantic_diff.pdf')
 fig.write_image(settings.figures_dir / 'manuscript' / 'semantic_diff.svg')
 fig.write_image(settings.figures_dir / 'manuscript' / 'semantic_diff.png', scale=2)
-
 
 stages = [
     'real',
@@ -201,10 +200,10 @@ for stage in stages:
                     labels={'small_bowel': 'small bowel'}
                     )
     axis_ticks = dict(
-            tickmode='array',
-            tickvals=np.arange(0, len(names)),
-            ticktext=names
-        )
+        tickmode='array',
+        tickvals=np.arange(0, len(names)),
+        ticktext=names
+    )
     fig.update_layout(
         xaxis=axis_ticks,
         yaxis=axis_ticks,
@@ -225,8 +224,7 @@ for stage in stages:
     fig.write_image(settings.figures_dir / 'manuscript' / f'semantic_rf_confusion_matrix_{stage}.svg')
     fig.write_image(settings.figures_dir / 'manuscript' / f'semantic_rf_confusion_matrix_{stage}.png', scale=2)
 
-
-df = pd.read_csv(settings.figures_dir  / 'semantic_pca.csv')
+df = pd.read_csv(settings.figures_dir / 'semantic_pca.csv')
 df, mapper = prepare_data(df)
 sns.set_style('whitegrid', {"grid.color": "ebf0f8ff", "grid.linewidth": 1})
 plt.rcParams["font.family"] = "serif"
@@ -237,12 +235,12 @@ for organ in df.organ.unique():
     model_file = settings.results_dir / 'pca' / f"semantic_pca_{'_'.join(organ.split(' '))}.joblib"
     model = joblib.load(model_file)
     tmp = df[df['organ'] == organ].copy()
-    tmp = tmp.rename({'pc_1': f"PC 1 [{round(model.explained_variance_ratio_[0]*100)}%]",
-                       'pc_2': f"PC 2 [{round(model.explained_variance_ratio_[1]*100)}%]"},
+    tmp = tmp.rename({'pc_1': f"PC 1 [{round(model.explained_variance_ratio_[0] * 100)}%]",
+                      'pc_2': f"PC 2 [{round(model.explained_variance_ratio_[1] * 100)}%]"},
                      axis=1)
     g = sns.jointplot(data=tmp,
-                      x=f"PC 1 [{round(model.explained_variance_ratio_[0]*100)}%]",
-                      y=f"PC 2 [{round(model.explained_variance_ratio_[1]*100)}%]",
+                      x=f"PC 1 [{round(model.explained_variance_ratio_[0] * 100)}%]",
+                      y=f"PC 2 [{round(model.explained_variance_ratio_[1] * 100)}%]",
                       hue="data",
                       kind="kde",
                       fill=True,
@@ -259,7 +257,6 @@ for organ in df.organ.unique():
     plt.savefig(settings.figures_dir / 'manuscript' / 'semantic_pca' / f'semantic_pca_{organ}.png', dpi=300)
     plt.clf()
 
-
 df = pd.read_csv(settings.figures_dir / 'pai_signal.csv')
 df, mapper = prepare_data(df)
 for tissue in df.tissue.unique():
@@ -273,7 +270,7 @@ for tissue in df.tissue.unique():
                   color_discrete_map=cmap_qualitative,
                   width=500,
                   category_orders=dict(data=['real', 'simulated', 'UNIT', 'cINN'])
-               )
+                  )
     font_size = 20
     fig.update_layout(font=dict(size=font_size, family=font_type, color="#000000"),
                       legend=dict(orientation="h", xanchor="center", x=0.5, y=1, title=""),
@@ -287,28 +284,30 @@ for tissue in df.tissue.unique():
     fig.write_image(settings.figures_dir / 'manuscript' / f'pai_signal_{tissue}.svg')
     fig.write_image(settings.figures_dir / 'manuscript' / f'pai_signal_{tissue}.png', scale=2)
 
-
 df = pd.read_csv(settings.figures_dir / 'pai_diff.csv')
 if 'difference [%]' in df.columns:
     df['difference [%]'] *= 100
 df, mapper = prepare_data(df)
 tissues = df.tissue.unique()
 for tissue in tissues:
-    tmp = df[df.tissue==tissue]
+    tmp = df[df.tissue == tissue]
     fig = px.violin(data_frame=tmp,
-                 x="data",
-                 y=mapper.get('difference'),
-                 color="data",
-                 color_discrete_map=cmap_qualitative,
-                 template="plotly_white",
-                 category_orders=dict(tissue=['vein', 'artery'], data=['real - simulated', 'real - UNIT', 'real - cINN']),
-                 facet_col_spacing=0.05,
+                    x="data",
+                    y=mapper.get('difference'),
+                    color="data",
+                    color_discrete_map=cmap_qualitative,
+                    template="plotly_white",
+                    category_orders=dict(tissue=['vein', 'artery'],
+                                         data=['real - simulated', 'real - UNIT', 'real - cINN']),
+                    facet_col_spacing=0.05,
                     width=600,
                     height=500,
                     points="all"
-                 )
+                    )
     fig.update_traces(scalemode='width', meanline_visible=True)
     TRACE_INDEX = []
+
+
     def split_scale_group(tr):
         if TRACE_INDEX:
             TRACE_INDEX.append(TRACE_INDEX[-1] + 1)
@@ -316,6 +315,8 @@ for tissue in tissues:
             TRACE_INDEX.append(0)
         tr.scalegroup = TRACE_INDEX[-1]
         return tr
+
+
     fig.for_each_trace(split_scale_group)
     fig.update_traces(line=dict(width=4))
     font_size = 24
@@ -335,7 +336,6 @@ for tissue in tissues:
     fig.write_image(settings.figures_dir / 'manuscript' / f'pai_diff_{tissue}.svg')
     fig.write_image(settings.figures_dir / 'manuscript' / f'pai_diff_{tissue}.png', scale=2)
 
-
 df = pd.read_csv(settings.results_dir / 'pca' / 'pai_pca.csv')
 # df = df[df['data'] != 'unit']
 df, mapper = prepare_data(df)
@@ -348,12 +348,12 @@ for tissue in df.tissue.unique():
     model_file = settings.results_dir / 'pca' / f'pai_pca_{tissue}.joblib'
     model = joblib.load(model_file)
     tmp = df[df['tissue'] == tissue].copy()
-    tmp = tmp.rename({'pc_1': f"PC 1 [{round(model.explained_variance_ratio_[0]*100)}%]",
-                       'pc_2': f"PC 2 [{round(model.explained_variance_ratio_[1]*100)}%]"},
+    tmp = tmp.rename({'pc_1': f"PC 1 [{round(model.explained_variance_ratio_[0] * 100)}%]",
+                      'pc_2': f"PC 2 [{round(model.explained_variance_ratio_[1] * 100)}%]"},
                      axis=1)
     g = sns.jointplot(data=tmp,
-                      x=f"PC 1 [{round(model.explained_variance_ratio_[0]*100)}%]",
-                      y=f"PC 2 [{round(model.explained_variance_ratio_[1]*100)}%]",
+                      x=f"PC 1 [{round(model.explained_variance_ratio_[0] * 100)}%]",
+                      y=f"PC 2 [{round(model.explained_variance_ratio_[1] * 100)}%]",
                       hue="data",
                       kind="kde",
                       fill=True,
@@ -370,7 +370,6 @@ for tissue in df.tissue.unique():
     plt.savefig(settings.figures_dir / 'manuscript' / f'pai_pca_{tissue}.pdf')
     plt.savefig(settings.figures_dir / 'manuscript' / f'pai_pca_{tissue}.svg')
     plt.savefig(settings.figures_dir / 'manuscript' / f'pai_pca_{tissue}.png', dpi=300)
-
 
 stages = [
     'real',
@@ -395,10 +394,10 @@ for stage in stages:
                     labels={'small_bowel': 'small bowel'}
                     )
     axis_ticks = dict(
-            tickmode='array',
-            tickvals=np.arange(0, len(names)),
-            ticktext=names
-        )
+        tickmode='array',
+        tickvals=np.arange(0, len(names)),
+        ticktext=names
+    )
     fig.update_layout(
         xaxis=axis_ticks,
         yaxis=axis_ticks,

@@ -1,7 +1,7 @@
 import click
+import cuml
 import numpy as np
 import torch
-import cuml
 from omegaconf import DictConfig
 
 from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
@@ -16,7 +16,13 @@ def fit_knn(x, **kwargs):
     return nn
 
 
-def find_unique_rows(x: torch.Tensor, desc: str = "") -> torch.Tensor:
+def find_unique_rows(x: torch.Tensor) -> torch.Tensor:
+    """
+    given a tensor, finds the unique rows and generates a new array that contains only such unique rows
+
+    :param x: tensor where rows are searched along the first dimension
+    :return: tensor of unique rows
+    """
     target = x[0]
     unique_rows = []
     while x.numel():
@@ -33,6 +39,15 @@ def find_unique_rows(x: torch.Tensor, desc: str = "") -> torch.Tensor:
 
 
 def make_unique_knn_dataset():
+    """
+    generates a dataset with unique spectra per organ based on the following steps:
+
+    1. take real images and assign for each pixel the closest neighbour
+    2. find all unique spectra that were assigned in step 1
+    3. label the unique spectra generated in step 2 by finding the closest spectra from the real data and assigning
+    the label that corresponds to that closest real pixel
+
+    """
     config = DictConfig({'data': {'mean_a': 0.1,
                                   'std_a': 0.1,
                                   'mean_b': 0.1,
@@ -108,7 +123,7 @@ def make_unique_knn_dataset():
 
 @click.command()
 @click.option('--unique', is_flag=True, help="generate a set of unique simulations with organ labels based on:\n"
-                                             "1. take real images and assign for ech pixel the closes neighbour"
+                                             "1. take real images and assign for each pixel the closest neighbour"
                                              "2. find all unique spectra that were assigned in step 1"
                                              "3. label the unique spectra generated in step 2 by finding the closest"
                                              "spectra from the real data and assigning the label that corresponds to "

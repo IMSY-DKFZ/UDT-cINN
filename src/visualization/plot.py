@@ -1,10 +1,22 @@
-import plotly.graph_objs as go
-import plotly.express as px
-import pandas as pd
 import re
+
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objs as go
 
 
 def line(data_frame: pd.DataFrame, x, y, color, facet_col=None, **kwargs):
+    """
+    generates a plotly plot while adding standard deviation as error band around lines.
+
+    :param data_frame: data to be used for plotting
+    :param x: column name containing x-axis data
+    :param y: column name containing y-axis data
+    :param color: column name containing color data
+    :param facet_col: column name indicating the variable to use to plot subplots in columns
+    :param kwargs: addition arguments parsed to `plotly.express._chart_types.line`
+    :return:
+    """
     categories = [c for c in [x, color, facet_col] if c is not None]
     agg = data_frame.groupby(categories).agg({y: ['mean', 'std']}).reset_index()
     data = agg.copy()

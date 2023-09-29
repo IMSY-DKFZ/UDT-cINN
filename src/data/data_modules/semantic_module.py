@@ -1,14 +1,15 @@
+import json
+from itertools import cycle
+from typing import Sized, List, Iterator, Sequence
+
 import numpy as np
 import pytorch_lightning as pl
-import json
 import torch
-from torch.utils.data import DataLoader, Sampler, BatchSampler, SequentialSampler
 from omegaconf import DictConfig
-from typing import Sized, List, Iterator, Iterable, Sequence
-from itertools import cycle
+from torch.utils.data import DataLoader, Sampler, BatchSampler, SequentialSampler
 
-from src.data.datasets.semantic_dataset import SemanticDataset
 from src import settings
+from src.data.datasets.semantic_dataset import SemanticDataset
 from src.utils.collate_function import collate_hsi
 
 
@@ -192,19 +193,18 @@ class EnableTestData:
 
 
 class BalancedBatchSampler(Sampler[List[int]]):
-    r"""Wraps another sampler to yield a mini-batch of indices.
+    """
+    Wraps another sampler to yield a mini-batch of indices.
 
-    Args:
-        sampler (Sampler or Iterable): Base sampler. Can be any iterable object
-        batch_size (int): Size of mini-batch.
-        drop_last (bool): If ``True``, the sampler will drop the last batch if
+    :param Sampler: sampler (Sampler or Iterable): Base sampler. Can be any iterable object
+            batch_size (int): Size of mini-batch. drop_last (bool): If ``True``, the sampler will drop the last batch if
             its size would be less than ``batch_size``
 
     Example:
-        >>> list(BatchSampler(SequentialSampler(range(10)), batch_size=3, drop_last=False))
-        [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9]]
-        >>> list(BatchSampler(SequentialSampler(range(10)), batch_size=3, drop_last=True))
-        [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+    >>> list(BatchSampler(SequentialSampler(range(10)), batch_size=3, drop_last=False))
+    [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9]]
+    >>> list(BatchSampler(SequentialSampler(range(10)), batch_size=3, drop_last=True))
+    [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
     """
 
     def __init__(self,
@@ -212,9 +212,15 @@ class BalancedBatchSampler(Sampler[List[int]]):
                  batch_size: int,
                  drop_last: bool,
                  classes: Sequence[int]) -> None:
-        # Since collections.abc.Iterable does not check for `__getitem__`, which
-        # is one way for an object to be an iterable, we don't do an `isinstance`
-        # check here.
+        """
+        Creates a balanced batch where each class is equally represented on each batch
+
+        :param data_source: data set
+        :param batch_size: size of batch
+        :param drop_last: whether to drop the last batch if the size does not match the specified batch size
+        :param classes: sequence of classes to balance
+        """
+        super(BalancedBatchSampler).__init__(data_source=data_source)
         if not isinstance(batch_size, int) or isinstance(batch_size, bool) or \
                 batch_size <= 0:
             raise ValueError("batch_size should be a positive integer value, "
@@ -251,10 +257,6 @@ class BalancedBatchSampler(Sampler[List[int]]):
                 break
 
     def __len__(self) -> int:
-        # Can only be called if self.sampler has __len__ implemented
-        # We cannot enforce this condition, so we turn off typechecking for the
-        # implementation below.
-        # Somewhat related: see NOTE [ Lack of Default `__len__` in Python Abstract Base Classes ]
         if self.drop_last:
             return len(self.data_source) // self.batch_size  # type: ignore[arg-type]
         else:

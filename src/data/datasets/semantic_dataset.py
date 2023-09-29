@@ -1,16 +1,20 @@
-import torch
-from torch.utils.data import Dataset
-import numpy as np
 import re
 from pathlib import Path
+from typing import List
+
+import numpy as np
+import torch
 from omegaconf import DictConfig
 from torch.linalg import norm
-from typing import List
+from torch.utils.data import Dataset
 
 from src import settings
 
 
 class SemanticDataset(Dataset):
+    """
+    A dataset that is used to load the real and simulated dataset used for domain adaptation.
+    """
     def __init__(self,
                  root_a: Path,
                  root_b: Path,
@@ -20,6 +24,18 @@ class SemanticDataset(Dataset):
                  ignore_classes: list = None,
                  test_set: bool = False
                  ):
+        """
+
+        :param root_a: path to data in the simulation domain. It should contain files ending with `_ind.npy` and
+            `_seg.npy`
+        :param root_b: path to data in the real domain
+        :param exp_config: class containing the configuration necessary for the experiment: normalization,
+            mean and standard deviation from both domains a and b.
+        :param noise_aug: whether to do noise augmentation during loading
+        :param noise_std: how much noise augmentation to do
+        :param ignore_classes: list of classes to ignore during data loading
+        :param test_set: whether to enable the test set or not
+        """
         super(SemanticDataset, self).__init__()
         self.root_a = root_a
         self.root_b = root_b
@@ -126,6 +142,23 @@ class SemanticDataset(Dataset):
             return x / norm(x, ord=2)
 
     def __getitem__(self, index) -> dict:
+        """
+        while iterating the dataset, it returns a dictionary with the keys:
+        1. spectra_a: spectral from the simulation domain
+        2. spectra_b: spectra from the real domain
+        3. seg_a: segmentation of domain a data (organ labels)
+        4. seg_b: segmentation of domain b data (organ labels)
+        5. subjects_a: IDs of the subjects from which the data from spectra_a is extracted
+        6. subjects_b: IDs of the subjects from which the data from spectra_b is extracted
+        7. image_ids_a: IDs of the images from which the data from spectra_a is extracted
+        8. image_ids_b: IDs of the images from which the data from spectra_b is extracted
+        9. mapping: dictionary mapping from int values to organ labels
+        10. order: order of organ labels that is always the same on each iteration. Can be used to sort the data that is
+            returned
+
+        :param index:
+        :return:
+        """
         if isinstance(index, list):
             index = torch.tensor(index)
         spectra_a = self.data_a[index % self.data_a_size, ...]

@@ -1,20 +1,21 @@
+import os
+import warnings
+from itertools import cycle
+from pathlib import Path
+from typing import Any
+
 import click
+import joblib
 import numpy as np
 import pandas as pd
 import torch
-import joblib
-import os
 from omegaconf import DictConfig
-from pathlib import Path
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, classification_report, roc_auc_score, balanced_accuracy_score, f1_score
-from sklearn.calibration import CalibratedClassifierCV
-from typing import Any
-from itertools import cycle
-import warnings
 
-from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
 from src import settings
+from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
 from src.data.utils import get_label_mapping, IGNORE_CLASSES
 from src.utils.susi import ExperimentResults
 
@@ -391,6 +392,19 @@ def eval_classification(target: str, balance_classes: bool):
                                                       "maximum # samples per organ is selected, and the samples for"
                                                       "class are repeated until reaching such maximum #")
 def main(rf: bool, target: str, balance_classes: bool):
+    """
+    evaluates a random forest classifier on the real data, simulation, and simulations adapted to real data. It does
+    so taking into account the data splits:
+
+    ======= =========== ================ ===================================
+    REAL    SYNTHETIC   DOMAIN ADAPTED   REAL (used to generate synthetic)
+    ======= =========== ================ ===================================
+    train   train       train            train\n
+    val     val         val              val\n
+    test    test        test             test\n
+    ======= =========== ================ ===================================
+
+    """
     if rf:
         eval_classification(target=target, balance_classes=balance_classes)
 

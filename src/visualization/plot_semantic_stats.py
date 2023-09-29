@@ -1,14 +1,15 @@
-import click
 import json
-import pandas as pd
+
+import click
 import numpy as np
+import pandas as pd
 import plotly.express as px
 from htc import DataPath
 from omegaconf import DictConfig
 
 from src import settings
-from src.data.make_knn_dataset import split_dataset
 from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
+from src.data.make_knn_dataset import split_dataset
 from src.utils.susi import ExperimentResults
 
 

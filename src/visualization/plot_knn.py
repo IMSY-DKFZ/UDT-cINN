@@ -1,9 +1,9 @@
 import click
 import numpy as np
 import pandas as pd
-import plotly.graph_objs as go
 import plotly
 import plotly.express as px
+import plotly.graph_objs as go
 
 from src import settings
 

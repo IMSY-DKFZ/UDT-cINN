@@ -28,6 +28,11 @@ def export_figures():
 @click.command()
 @click.option('--export', is_flag=True, help="convert final figures to PDF for uploading to overleaf")
 def main(export):
+    """
+    iterates over all svg files except for the ones named in `EXCLUDE_FILES`, and converts them to PDF. This fixes
+    many font issues that arise from plotly. Plotly sometimes does not generate the right font when saving a file as PDF
+
+    """
     if export:
         export_figures()
 

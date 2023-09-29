@@ -1,13 +1,13 @@
 import click
-import pandas as pd
-from omegaconf import DictConfig
 import numpy as np
+import pandas as pd
 import torch
+from omegaconf import DictConfig
 
-from src.data.data_modules import SemanticDataModule
-from src.utils.susi import ExperimentResults
-from src.data.utils import get_label_mapping
 from src import settings
+from src.data.data_modules import SemanticDataModule
+from src.data.utils import get_label_mapping
+from src.utils.susi import ExperimentResults
 
 torch.manual_seed(100)
 np.random.seed(100)
@@ -119,6 +119,11 @@ def calculate_unique():
 @click.option('--unique', is_flag=True, help="calculate the number of unique spectra that exist in one organ, and not"
                                              "in any other organ")
 def main(redundancy: bool, unique: bool):
+    """
+    Analyzes the redundancy in the generated KNN dataset. In simple terms, it checks which spectra that are assigned
+    to a certain organ label are also assigned to a different organ label.
+
+    """
     if redundancy:
         calculate_redundancy()
     if unique:

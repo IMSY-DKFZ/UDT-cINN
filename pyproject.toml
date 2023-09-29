@@ -2,7 +2,7 @@
 name = "UDT_cINN"
 version = "0.0.1"
 description = "This is the project repo for the unsupervised domain transfer project submitted to miccai23"
-authors = ["Kris Dreher <k.dreher@dkfz-heidelberg.de>"]
+authors = ["Kris Dreher <k.dreher@dkfz-heidelberg.de>", "Leonardo Ayala <l.menjivar@dkfz-heidelberg.de>"]
 license = "MIT"
 readme = "README.md"
 

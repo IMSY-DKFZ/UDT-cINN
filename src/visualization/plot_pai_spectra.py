@@ -1,12 +1,13 @@
+import os
+from pathlib import Path
+
 import click
 import numpy as np
 import pandas as pd
-from pathlib import Path
-import os
 
 from src import settings
-from src.utils.susi import ExperimentResults
 from src.utils.gather_pa_spectra_from_dataset import calculate_mean_spectrum
+from src.utils.susi import ExperimentResults
 from src.visualization.plot import line
 from src.visualization.templates import cmap_qualitative, cmap_qualitative_diff
 

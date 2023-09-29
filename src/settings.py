@@ -1,10 +1,10 @@
 import json
 import os
-import numpy as np
 from pathlib import Path
 from typing import Union
-from dotenv import load_dotenv
 
+import numpy as np
+from dotenv import load_dotenv
 
 here = Path(__file__).parent
 

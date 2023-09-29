@@ -1,36 +1,13 @@
+import json
+
 import click
 import numpy as np
-import json
 import torch
 from omegaconf import DictConfig
 from sklearn.preprocessing import normalize
 
 from src import settings
 from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
-
-
-def compute_running_stats(data: list):
-    """
-    compute online mean and variance based on Welford's method
-    https://www.johndcook.com/blog/standard_deviation/
-
-    :param data:
-    :return:
-    """
-
-    n = 0
-    mean = 0
-    m2 = 0
-    for item in data:
-        item = item.flatten()
-        for x in item:
-            n += 1
-            delta = x - mean
-            mean = mean + delta / n
-            m2 = m2 + delta * (x - mean)
-    variance = m2 / (n - 1)
-    std = np.sqrt(variance)
-    return dict(mean=mean, variance=variance, n=n, std=std)
 
 
 def _compute_stats(data: np.ndarray):
@@ -110,6 +87,9 @@ def build_stats():
 @click.command()
 @click.option('--stats', is_flag=True, help="compute stats used for normalization during model training")
 def main(stats):
+    """
+    computes the statistics: mean, standard deviation, number of samples and variance or all data splits
+    """
     if stats:
         build_stats()
     pass

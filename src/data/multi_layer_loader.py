@@ -10,7 +10,7 @@ logger = logging.getLogger()
 
 
 class SimulationDataLoader:
-    """Abstract away susi simulation data."""
+    """Abstract away simulation data."""
 
     def __init__(self,):
         """Construct a susi simulation dataloader.

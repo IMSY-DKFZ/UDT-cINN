@@ -5,8 +5,8 @@ import plotly.express as px
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import normalize
 
-from src.data.multi_layer_loader import SimulationDataLoader
 from src import settings
+from src.data.multi_layer_loader import SimulationDataLoader
 
 
 def load_data(dataset: str, splits: list):

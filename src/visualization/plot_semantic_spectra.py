@@ -1,18 +1,19 @@
-import click
-import numpy as np
-import pandas as pd
 import re
-import plotly.express as px
-import joblib
-import seaborn as sns
-from sklearn.preprocessing import normalize
-from sklearn.decomposition import PCA
 from typing import List
 
+import click
+import joblib
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import seaborn as sns
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import normalize
+
 from src import settings
+from src.utils.susi import ExperimentResults
 from src.visualization.plot import line
 from src.visualization.templates import cmap_qualitative, cmap_qualitative_diff
-from src.utils.susi import ExperimentResults
 
 
 def _strip_names(files: List[str]) -> List[str]:
