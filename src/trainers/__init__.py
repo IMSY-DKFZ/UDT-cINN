@@ -9,10 +9,8 @@ from src.trainers.inn_trainer import DomainAdaptationInn
 from src.trainers.gan_conditional_inn_trainer import GanCondinitionalDomainAdaptationINN
 from src.trainers.gan_conditional_inn_trainer_hsi import GanCondinitionalDomainAdaptationINNHSI
 from src.trainers.unit_trainer_hsi import UnitHSI
-from src.trainers.waic_trainer import WAICTrainer
 from src.trainers.cycle_gan_trainer import CycleGANTrainer
 from src.trainers.cycle_gan_hsi_trainer import CycleGANHSITrainer
-from src.trainers.waic_hsi_trainer import WAICTrainerHSI
 
 
 def get_model(experiment_name: str):
@@ -26,16 +24,11 @@ def get_model(experiment_name: str):
         "unit": UNIT,
         "cycle_gan": CycleGANTrainer,
         "cycle_gan_hsi": CycleGANHSITrainer,
-        "waic": WAICTrainer,
-        "waic_hsi": WAICTrainerHSI,
     }
 
     try:
         model = model_dictionary[experiment_name]
     except KeyError:
-        try:
-            model = model_dictionary[experiment_name.replace("_mnist", "")]
-        except KeyError:
-            raise KeyError("Please specify a valid experiment name")
+        raise KeyError("Please specify a valid experiment name")
 
     return model
