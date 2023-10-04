@@ -1,5 +1,4 @@
 from src.data.data_modules.domain_adaptation_data_module import DomainAdaptationDataModule
-from src.data.data_modules.waic_data_module import WAICDataModule
 from src.data.data_modules.semantic_module import SemanticDataModule, EnableTestData
 
 

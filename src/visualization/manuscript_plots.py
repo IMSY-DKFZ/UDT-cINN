@@ -40,7 +40,6 @@ def prepare_data(df: pd.DataFrame):
         'dataset': 'data',
         'source': 'data',
         'pai_signal': 'PA signal [a.u.]',
-        'waic': 'WAIC [a.u.]',
         'difference': 'difference [a.u.]',
         'metric diff': 'metric relative to simulations'
     }
