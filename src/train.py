@@ -41,9 +41,8 @@ if run_by_bash:
 
 else:
     EXPERIMENT_NAME = "gan_cinn"
-    SAVE_DATA_PATH = "/home/kris/Work/Data/DA_results"
-    DATA_BASE_PATH = "/home/kris/Work/Data/domain_adaptation_simulations"
-    PYTHON_PATH = "/home/kris/Work/Repositories/miccai23/src"
+    SAVE_DATA_PATH = ""
+    DATA_BASE_PATH = ""
 
 
 config_path = get_conf_path(PYTHON_PATH, EXPERIMENT_NAME)
