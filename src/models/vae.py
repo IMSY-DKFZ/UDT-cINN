@@ -62,7 +62,7 @@ if __name__ == "__main__":
     }
 
     vae = VariationalAutoEncoder(config, 16).cuda()
-    vae_checkpoint = torch.load("/home/kris/Work/Data/DA_results/vae/2022_11_01_20_01_14/version_0/checkpoints/epoch=249-step=31499.ckpt")["state_dict"]
+    vae_checkpoint = torch.load("")["state_dict"]
     # IMPORTANT: assumes that vae weights are stored in model.weights...
     new_state_dict = OrderedDict()
     for key, value in vae_checkpoint.items():

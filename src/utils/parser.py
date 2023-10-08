@@ -81,15 +81,3 @@ class DomainAdaptationParser(ArgumentParser):
                 raise KeyError("Please select a valid data_set_name out of [mnist_usps, sim, real_sim]!")
 
         return new_config
-
-
-if __name__ == "__main__":
-    conf = load_config("/home/kris/Work/Repositories/miccai23/configs/gan_cinn_conf.yaml")
-    print(conf)
-    parser = DomainAdaptationParser(conf)
-    new_conf = parser.get_new_config()
-    print(new_conf)
-
-
-
-
