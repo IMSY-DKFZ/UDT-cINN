@@ -1,15 +1,16 @@
-import pytorch_lightning as pl
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.callbacks import ModelCheckpoint
 import torch
 import torch.backends.cudnn as cudnn
 import os
+import glob
 from datetime import datetime
+import numpy as np
+import matplotlib.pyplot as plt
 
 from src.trainers import get_model
 from src.data import get_data_module
 from src.utils.config_io import load_config, get_conf_path
 from src.utils.parser import DomainAdaptationParser
+from src.visualization import col_bar
 
 import matplotlib
 matplotlib.use('Agg')
@@ -19,70 +20,115 @@ torch.backends.cudnn.enabled = True
 torch.backends.cudnn.deterministic = True
 torch.set_float32_matmul_precision("high")
 
+SAVE_DATA_PATH = os.environ["SAVE_DATA_PATH"]
+DATA_BASE_PATH = os.environ["UDT_cINN_PROJECT_PATH"]
 
-try:
-    run_by_bash: bool = bool(os.environ["RUN_BY_BASH"])
-    print("This runner script is invoked in a bash script!")
-except KeyError:
-    run_by_bash: bool = False
+pretrained_models = glob.glob(os.path.join(DATA_BASE_PATH, "pretrained_models", "*", "*"))
 
-try:
-    experiment_id = os.environ["EXPERIMENT_ID"]
-except KeyError:
-    print("No Experiment name was given, so the save path will be the training start time stamp!")
-    time_stamp = datetime.now()
-    experiment_id = time_stamp.strftime("%Y_%m_%d_%H_%M_%S")
+for pretrained_model in pretrained_models:
+    print(pretrained_model)
 
-if run_by_bash:
-    EXPERIMENT_NAME = os.environ['EXPERIMENT_NAME']
-    SAVE_DATA_PATH = os.environ["SAVE_DATA_PATH"]
-    DATA_BASE_PATH = os.environ["DATA_BASE_PATH"]
-    PYTHON_PATH = os.environ["PYTHON_PATH"]
+    if "cINN" in pretrained_model:
+        EXPERIMENT_NAME = "gan_cinn"
+    else:
+        EXPERIMENT_NAME = "unit"
 
-else:
-    EXPERIMENT_NAME = "gan_cinn"
-    SAVE_DATA_PATH = "/home/kris/Work/Data/DA_results"
-    DATA_BASE_PATH = "/home/kris/Work/Data/domain_adaptation_simulations"
-    PYTHON_PATH = "/home/kris/Work/Repositories/miccai23/src"
+    if "HSI" in pretrained_model:
+        EXPERIMENT_NAME += "_hsi"
 
+    config_path = os.path.join(pretrained_model, "config.yaml")
 
-config_path = get_conf_path(PYTHON_PATH, EXPERIMENT_NAME)
-config = load_config(config_path)
+    config = load_config(config_path)
+    config.inference = True
+    config.checkpoint = os.path.join(pretrained_model, "model_checkpoint.ckpt")
 
-save_path = os.path.join(SAVE_DATA_PATH, EXPERIMENT_NAME)
-config["save_path"] = os.path.join(save_path, experiment_id)
-config["data_base_path"] = DATA_BASE_PATH
+    config["save_path"] = pretrained_model
+    config["data_base_path"] = os.path.join(DATA_BASE_PATH, "simulated_data")
 
-parser = DomainAdaptationParser(config=config)
-config = parser.get_new_config()
+    parser = DomainAdaptationParser(config=config)
+    config = parser.get_new_config()
 
-pl.seed_everything(config.seed)
+    model = get_model(experiment_name=EXPERIMENT_NAME)
 
-data_module = get_data_module(experiment_name=EXPERIMENT_NAME)
-enable_test_data = True
-if isinstance(data_module, tuple):
-    enable_test_data = True
-    test_data_manager = data_module[1]
-    data_module = data_module[0]
-model = get_model(experiment_name=EXPERIMENT_NAME)
+    if "hsi" in EXPERIMENT_NAME:
+        model = model.load_from_checkpoint(checkpoint_path=config.checkpoint, experiment_config=config).cuda()
+        data_module, test_data_manager = get_data_module(experiment_name=EXPERIMENT_NAME)
+        config.batch_size = 1000
+        data_module = data_module(experiment_config=config)
 
-data_module = data_module(experiment_config=config)
-model = model(experiment_config=config)
-logger = TensorBoardLogger(save_dir=save_path, name=experiment_id)
-logger.log_hyperparams(config)
+        generated_spectrum_data_path = os.path.join(config.save_path, "generated_spectra_data")
+        os.makedirs(generated_spectrum_data_path, exist_ok=True)
 
-trainer = pl.trainer.Trainer(accelerator='gpu', devices=1, max_epochs=config.epochs, logger=logger,
-                             callbacks=[ModelCheckpoint(save_top_k=-1, every_n_epochs=50)],
-                             num_sanity_val_steps=0, check_val_every_n_epoch=1,
-                             limit_val_batches=10,
-                             gradient_clip_val=0.1, gradient_clip_algorithm="value",
-                             deterministic=False)
-trainer.fit(model, datamodule=data_module)
+        with test_data_manager(data_module):
+            for batch_idx, batch in enumerate(data_module.test_dataloader()):
+                print(batch_idx)
+                spectra_a, spectra_b = model.get_spectra(batch)
 
-# trainer.predict(model, data_module.val_dataloader())
+                spectra_ab = model.translate_spectrum(spectra_a, input_domain="a")
 
-if enable_test_data and config.get("test_run"):
-    with test_data_manager(data_module):
-        trainer.test(model, datamodule=data_module)
-else:
-    trainer.test(model, datamodule=data_module)
+                spectra_a = spectra_a[0].detach().cpu().numpy() if isinstance(spectra_a, tuple) else spectra_a.detach().cpu().numpy()
+                spectra_ab = spectra_ab[0].detach().cpu().numpy() if isinstance(spectra_ab, tuple) else spectra_ab.detach().cpu().numpy()
+
+                spectra_a = spectra_a * config.data.std_a + config.data.mean_a
+                spectra_ab = spectra_ab * config.data.std_b + config.data.mean_b
+
+                # Uncomment this for saving the generated images
+                # np.savez(os.path.join(generated_spectrum_data_path, f"test_file_{batch_idx}"),
+                #          spectra_a=spectra_a,
+                #          spectra_ab=spectra_ab,
+                #          seg_a=batch["seg_a"].cpu().numpy(),
+                #          subjects_a=batch["subjects_a"],
+                #          image_ids_a=batch["image_ids_a"],
+                #          )
+
+                organ_label_a = batch["mapping"][str(int(batch["seg_a"][0].cpu()))]
+                plt.figure(figsize=(6, 6))
+                plt.plot(spectra_a[0], color="green", linestyle="solid", label=f"{organ_label_a} simulated spectrum")
+                plt.plot(spectra_ab[0], color="blue", linestyle="dashed", label=f"{organ_label_a} Sim2Real spectrum")
+                plt.legend()
+                plt.savefig(os.path.join(generated_spectrum_data_path, f"test_file_{batch_idx}.png"))
+                plt.close()
+    else:
+        config.data.dimensions = [16, 128, 256]
+        model = model.load_from_checkpoint(checkpoint_path=config.checkpoint, experiment_config=config).cuda()
+        files_path = os.path.join(DATA_BASE_PATH, "simulated_data", "PAT_Data", "good_simulations", "test", "*.npz")
+        file_list = glob.glob(files_path)
+        generated_image_data_path = os.path.join(config.save_path, "generated_image_data")
+        os.makedirs(generated_image_data_path, exist_ok=True)
+        for file_idx, file in enumerate(file_list):
+            print(file_idx)
+            data = np.load(file, allow_pickle=True)
+            img_a = torch.unsqueeze(torch.from_numpy(data["reconstruction"]), 0).type(torch.float32)
+            seg_a = torch.unsqueeze(torch.from_numpy(data["segmentation"]), 0).type(torch.float32)
+
+            images_a = (img_a - config.data["mean_a"]) / config.data["std_a"]
+            if config.condition == "segmentation":
+                images_a = (images_a.cuda(), seg_a)
+            else:
+                images_a = images_a.cuda()
+            images_ab = model.translate_image(images_a, input_domain="a")
+
+            images_a = images_a[0].detach().cpu().numpy() if isinstance(images_a, tuple) else images_a.detach().cpu().numpy()
+            images_ab = images_ab[0].detach().cpu().numpy() if isinstance(images_ab, tuple) else images_ab.detach().cpu().numpy()
+
+            images_a = images_a * config.data.std_a + config.data.mean_a
+            images_ab = images_ab * config.data.std_b + config.data.mean_b
+
+            # Uncomment this for saving the generated images
+            # np.savez(os.path.join(generated_image_data_path, f"test_file_{file_idx}"),
+            #          images_a=images_a,
+            #          images_ab=images_ab,
+            #          seg_a=data["segmentation"],
+            #          )
+
+            plt.figure(figsize=(6, 6))
+            plt.subplot(2, 1, 1)
+            plt.title("Simulated image at 800 nm")
+            img_a = plt.imshow(images_a[0, 10, :, :])
+            col_bar(img_a)
+            plt.subplot(2, 1, 2)
+            plt.title("Sim2Real Image at 800 nm")
+            img_ab = plt.imshow(images_ab[0, 10, :, :])
+            col_bar(img_ab)
+            plt.savefig(os.path.join(generated_image_data_path, f"test_image_{file_idx}.png"))
+            plt.close()
